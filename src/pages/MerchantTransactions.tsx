@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, Filter, Calendar, Search } from "lucide-react";
+import { getMerchantUser } from "@/lib/merchant-user";
 
-const transactions = [
+const demoTransactions = [
   {
     id: "txn_1001",
     reference: "TXN_001234567",
@@ -61,20 +62,30 @@ const transactions = [
 ];
 
 export default function MerchantTransactions() {
+  const user = getMerchantUser();
+  const hasDemoData = Boolean(user?.hasDemoData);
+  const transactions = hasDemoData ? demoTransactions : [];
+
   return (
     <DashboardLayout type="merchant" title="Transactions">
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Processed today</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">₦42.3M</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">
+            {hasDemoData ? "₦42.3M" : "₦0"}
+          </p>
         </Card>
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Success rate</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">97.8%</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">
+            {hasDemoData ? "97.8%" : "N/A"}
+          </p>
         </Card>
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Refunds pending</p>
-          <p className="text-2xl font-semibold text-warning mt-1">2</p>
+          <p className="text-2xl font-semibold text-warning mt-1">
+            {hasDemoData ? "2" : "0"}
+          </p>
         </Card>
       </div>
 

@@ -54,6 +54,13 @@ export function TransactionTable({ transactions, showMerchant = false }: Transac
           </TableRow>
         </TableHeader>
         <TableBody>
+          {transactions.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={showMerchant ? 6 : 5} className="text-center text-sm text-muted-foreground py-6">
+                No transactions yet.
+              </TableCell>
+            </TableRow>
+          )}
           {transactions.map((transaction, index) => (
             <TableRow
               key={transaction.id}

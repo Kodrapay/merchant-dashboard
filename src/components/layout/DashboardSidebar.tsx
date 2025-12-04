@@ -10,7 +10,9 @@ import {
   Wallet,
   ArrowLeftRight,
   FileText,
+  FileCheck,
 } from "lucide-react";
+import { getMerchantUser } from "@/lib/merchant-user";
 
 interface SidebarProps {
   type: "admin" | "merchant";
@@ -38,7 +40,13 @@ const merchantLinks = [
 
 export function DashboardSidebar({ type }: SidebarProps) {
   const location = useLocation();
-  const links = type === "admin" ? adminLinks : merchantLinks;
+  const user = getMerchantUser();
+  const links =
+    type === "admin"
+      ? adminLinks
+      : user?.kycStatus === "approved"
+        ? merchantLinks
+        : [{ href: "/merchant/kyc", icon: FileCheck, label: "Business KYC" }];
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">

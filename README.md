@@ -95,6 +95,8 @@ merchant-dashboard/
 
 - `/` - Home page
 - `/merchant/login` - Merchant authentication
+- `/merchant/signup` - Merchant signup
+- `/merchant/kyc` - KYC capture for new merchants
 - `/dashboard` - Merchant dashboard (alias of `/merchant`)
 - `/merchant` - Overview dashboard
 - `/merchant/transactions` - Transaction history

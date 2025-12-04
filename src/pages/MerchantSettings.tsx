@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,16 +7,30 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { getMerchantUser } from "@/lib/merchant-user";
 import { Bell, Building2, Globe, Shield, Eye, EyeOff, Copy, RefreshCw, KeyRound } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function MerchantSettings() {
   const [showSecret, setShowSecret] = useState(false);
   const [webhookSecret, setWebhookSecret] = useState("whsec_78d9fda3f002c6a2");
+  const [businessName, setBusinessName] = useState("");
+  const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "approved" | "rejected">("not_started");
   const { toast } = useToast();
   const publicKey = "pk_live_abc123xyz456def789";
   const secretKey = "sk_live_secret_key_hidden_for_security";
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const user = getMerchantUser();
+    if (user?.businessName) {
+      setBusinessName(user.businessName);
+    }
+    if (user?.kycStatus) {
+      setKycStatus(user.kycStatus);
+    }
+  }, []);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -51,7 +65,7 @@ export default function MerchantSettings() {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="business">Business name</Label>
-              <Input id="business" defaultValue="TechStore NG" />
+              <Input id="business" defaultValue={businessName || "Your business"} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="domain">Website</Label>
@@ -100,6 +114,24 @@ export default function MerchantSettings() {
           </div>
         </Card>
       </div>
+
+      <Card className="p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">KYC status</p>
+            <p className="text-lg font-semibold text-foreground">Business verification</p>
+          </div>
+          <Badge variant={kycStatus === "approved" ? "secondary" : "outline"} className="capitalize">
+            {kycStatus}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Keep your verification details up to date. You can resubmit if business information changes.
+        </p>
+        <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/merchant/kyc")}>
+          {kycStatus === "approved" ? "Update KYC" : "Complete KYC"}
+        </Button>
+      </Card>
 
       <Card className="p-6 space-y-4 mt-2">
         <div className="flex items-center gap-3">

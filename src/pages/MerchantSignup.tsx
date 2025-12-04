@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { setMerchantUser } from "@/lib/merchant-user";
 
 export default function MerchantSignup() {
   const [email, setEmail] = useState("");
@@ -17,19 +18,54 @@ export default function MerchantSignup() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      localStorage.setItem("authToken", "demo-merchant-token");
-      setIsSubmitting(false);
+    try {
+      // Create merchant in database
+      const response = await fetch("http://localhost:7002/merchants", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: business || "New Merchant",
+          email: email,
+          business_name: business || "New Business",
+          country: "NG",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create merchant");
+      }
+
+      const data = await response.json();
+
+      localStorage.setItem("authToken", `merchant-${data.id}`);
+      setMerchantUser({
+        email,
+        businessName: business || "New Business",
+        kycStatus: "not_started",
+        hasDemoData: false,
+        createdAt: new Date().toISOString(),
+      });
+
       toast({
         title: "Account created",
-        description: "Welcome to KodraPay. Redirecting to your dashboard.",
+        description: "Welcome to KodraPay. Complete KYC to unlock your dashboard.",
       });
-      navigate("/merchant");
-    }, 700);
+      navigate("/merchant/kyc");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

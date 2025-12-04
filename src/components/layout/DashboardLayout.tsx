@@ -12,6 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getMerchantUser } from "@/lib/merchant-user";
+import { useEffect, useState } from "react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -20,6 +22,28 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, type, title }: DashboardLayoutProps) {
+  const [businessName, setBusinessName] = useState<string | null>(null);
+  const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "approved" | "rejected">("not_started");
+
+  useEffect(() => {
+    if (type === "merchant") {
+      const user = getMerchantUser();
+      setBusinessName(user?.businessName ?? null);
+      if (user?.kycStatus) {
+        setKycStatus(user.kycStatus);
+      }
+    }
+  }, [type]);
+
+  const initials = businessName
+    ? businessName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "JD";
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardSidebar type={type} />
@@ -61,20 +85,37 @@ export function DashboardLayout({ children, type, title }: DashboardLayoutProps)
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2">
                     <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-semibold text-primary">JD</span>
+                      <span className="text-sm font-semibold text-primary">{initials}</span>
                     </div>
-                    <span className="text-sm font-semibold text-foreground">TechStore NG</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {type === "merchant" ? businessName || "Your business" : "KodraPay Admin"}
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/merchant/settings">View business profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/merchant/payment-links">Payment links</Link>
-                  </DropdownMenuItem>
+                  {type === "merchant"
+                    ? kycStatus === "approved"
+                      ? (
+                        <>
+                          <DropdownMenuItem asChild>
+                            <Link to="/merchant/settings">Business profile</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link to="/merchant/payment-links">Payment links</Link>
+                          </DropdownMenuItem>
+                        </>
+                      ) : (
+                        <DropdownMenuItem asChild>
+                          <Link to="/merchant/kyc">Complete KYC</Link>
+                        </DropdownMenuItem>
+                      )
+                    : (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/settings">Admin settings</Link>
+                      </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

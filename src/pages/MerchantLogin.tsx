@@ -7,6 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import {
+  deriveBusinessName,
+  getMerchantUser,
+  setMerchantUser,
+} from "@/lib/merchant-user";
 
 export default function MerchantLogin() {
   const [email, setEmail] = useState("");
@@ -22,12 +27,35 @@ export default function MerchantLogin() {
 
     setTimeout(() => {
       localStorage.setItem("authToken", "demo-merchant-token");
+      const existingUser = getMerchantUser();
+      const isDemo =
+        email.trim().toLowerCase() === "demo@kodrapay.com" &&
+        password.trim() === "Demo123!";
+
+      if (isDemo) {
+        setMerchantUser({
+          email,
+          businessName: "Demo Electronics",
+          kycStatus: "approved",
+          hasDemoData: true,
+        });
+      } else {
+        setMerchantUser({
+          email,
+          businessName: existingUser?.businessName || deriveBusinessName(email),
+          kycStatus: existingUser?.kycStatus ?? "not_started",
+          hasDemoData: false,
+          createdAt: existingUser?.createdAt ?? new Date().toISOString(),
+        });
+      }
+
       setIsSubmitting(false);
       toast({
         title: "Login successful",
         description: "Welcome back. Redirecting to your dashboard.",
       });
-      navigate("/merchant");
+      const nextUser = getMerchantUser();
+      navigate(nextUser && nextUser.kycStatus !== "approved" ? "/merchant/kyc" : "/merchant");
     }, 600);
   };
 
