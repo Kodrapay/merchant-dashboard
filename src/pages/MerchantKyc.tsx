@@ -51,7 +51,7 @@ export default function MerchantKyc() {
   };
 
   return (
-    <DashboardLayout type="merchant" title="Complete KYC">
+    <DashboardLayout type="merchant" title="Complete KYC" forceKycOnly>
       <div className="max-w-3xl space-y-6">
         {kycStatus === "pending" && (
           <Alert>

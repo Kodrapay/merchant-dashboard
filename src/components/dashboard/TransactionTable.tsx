@@ -19,11 +19,14 @@ interface Transaction {
   status: "successful" | "pending" | "failed";
   date: string;
   merchant?: string;
+  description?: string;
 }
 
 interface TransactionTableProps {
   transactions: Transaction[];
   showMerchant?: boolean;
+  onSelect?: (tx: Transaction) => void;
+  isLoading?: boolean;
 }
 
 const statusStyles = {
@@ -32,7 +35,7 @@ const statusStyles = {
   failed: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
-export function TransactionTable({ transactions, showMerchant = false }: TransactionTableProps) {
+export function TransactionTable({ transactions, showMerchant = false, onSelect, isLoading = false }: TransactionTableProps) {
   const formatAmount = (amount: number, currency: string) => {
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
@@ -54,7 +57,14 @@ export function TransactionTable({ transactions, showMerchant = false }: Transac
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactions.length === 0 && (
+          {isLoading && (
+            <TableRow>
+              <TableCell colSpan={showMerchant ? 6 : 5} className="text-center text-sm text-muted-foreground py-6">
+                Loading transactions...
+              </TableCell>
+            </TableRow>
+          )}
+          {!isLoading && transactions.length === 0 && (
             <TableRow>
               <TableCell colSpan={showMerchant ? 6 : 5} className="text-center text-sm text-muted-foreground py-6">
                 No transactions yet.
@@ -66,6 +76,7 @@ export function TransactionTable({ transactions, showMerchant = false }: Transac
               key={transaction.id}
               className="animate-fade-in cursor-pointer hover:bg-muted/30"
               style={{ animationDelay: `${index * 50}ms` }}
+              onClick={() => onSelect?.(transaction)}
             >
               <TableCell className="font-mono text-sm">{transaction.reference}</TableCell>
               <TableCell>

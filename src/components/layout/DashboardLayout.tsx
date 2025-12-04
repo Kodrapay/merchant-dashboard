@@ -19,9 +19,10 @@ interface DashboardLayoutProps {
   children: ReactNode;
   type: "admin" | "merchant";
   title: string;
+  forceKycOnly?: boolean;
 }
 
-export function DashboardLayout({ children, type, title }: DashboardLayoutProps) {
+export function DashboardLayout({ children, type, title, forceKycOnly = false }: DashboardLayoutProps) {
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "approved" | "rejected">("not_started");
 
@@ -46,7 +47,7 @@ export function DashboardLayout({ children, type, title }: DashboardLayoutProps)
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar type={type} />
+      <DashboardSidebar type={type} forceKycOnly={forceKycOnly} />
       
       <div className="pl-64">
         {/* Header */}

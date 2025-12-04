@@ -12,6 +12,7 @@ import {
   getMerchantUser,
   setMerchantUser,
 } from "@/lib/merchant-user";
+import { API_BASE_URL } from "@/lib/api-client";
 
 export default function MerchantLogin() {
   const [email, setEmail] = useState("");
@@ -25,38 +26,41 @@ export default function MerchantLogin() {
     event.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      localStorage.setItem("authToken", "demo-merchant-token");
-      const existingUser = getMerchantUser();
-      const isDemo =
-        email.trim().toLowerCase() === "demo@kodrapay.com" &&
-        password.trim() === "Demo123!";
-
-      if (isDemo) {
+    fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Invalid credentials");
+        const data = await res.json();
+        const token = data.token || data.access_token;
+        if (!token) throw new Error("No token returned");
+        localStorage.setItem("authToken", token);
+        const existingUser = getMerchantUser();
         setMerchantUser({
           email,
-          businessName: "Demo Electronics",
-          kycStatus: "approved",
-          hasDemoData: true,
-        });
-      } else {
-        setMerchantUser({
-          email,
-          businessName: existingUser?.businessName || deriveBusinessName(email),
-          kycStatus: existingUser?.kycStatus ?? "not_started",
+          businessName: data.business_name || existingUser?.businessName || deriveBusinessName(email),
+          merchantId: data.merchant_id || existingUser?.merchantId,
+          kycStatus: data.kyc_status || existingUser?.kycStatus || "not_started",
           hasDemoData: false,
           createdAt: existingUser?.createdAt ?? new Date().toISOString(),
         });
-      }
-
-      setIsSubmitting(false);
-      toast({
-        title: "Login successful",
-        description: "Welcome back. Redirecting to your dashboard.",
-      });
-      const nextUser = getMerchantUser();
-      navigate(nextUser && nextUser.kycStatus !== "approved" ? "/merchant/kyc" : "/merchant");
-    }, 600);
+        toast({
+          title: "Login successful",
+          description: "Welcome back. Redirecting to your dashboard.",
+        });
+        const nextUser = getMerchantUser();
+        navigate(nextUser && nextUser.kycStatus !== "approved" ? "/merchant/kyc" : "/merchant");
+      })
+      .catch((err) => {
+        toast({
+          title: "Login failed",
+          description: err.message || "Please check your credentials.",
+          variant: "destructive",
+        });
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   return (

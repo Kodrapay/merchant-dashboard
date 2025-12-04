@@ -65,7 +65,12 @@ export default function MerchantSettings() {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="business">Business name</Label>
-              <Input id="business" defaultValue={businessName || "Your business"} />
+              <Input
+                id="business"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="Your business"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="domain">Website</Label>

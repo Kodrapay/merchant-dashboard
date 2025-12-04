@@ -12,77 +12,79 @@ import {
   Wallet,
 } from "lucide-react";
 import { getMerchantUser } from "@/lib/merchant-user";
+import { useEffect, useMemo, useState } from "react";
+import { API_BASE_URL } from "@/lib/api-client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
-const demoTransactions = [
-  {
-    id: "1",
-    reference: "TXN_001234567",
-    customer: "John Doe",
-    email: "john@example.com",
-    amount: 125000,
-    currency: "NGN",
-    status: "successful" as const,
-    date: "Dec 3, 2024",
-  },
-  {
-    id: "2",
-    reference: "TXN_001234568",
-    customer: "Jane Smith",
-    email: "jane@example.com",
-    amount: 45000,
-    currency: "NGN",
-    status: "successful" as const,
-    date: "Dec 3, 2024",
-  },
-  {
-    id: "3",
-    reference: "TXN_001234569",
-    customer: "Mike Johnson",
-    email: "mike@example.com",
-    amount: 89500,
-    currency: "NGN",
-    status: "pending" as const,
-    date: "Dec 3, 2024",
-  },
-  {
-    id: "4",
-    reference: "TXN_001234570",
-    customer: "Sarah Williams",
-    email: "sarah@example.com",
-    amount: 250000,
-    currency: "NGN",
-    status: "successful" as const,
-    date: "Dec 2, 2024",
-  },
-  {
-    id: "5",
-    reference: "TXN_001234571",
-    customer: "David Brown",
-    email: "david@example.com",
-    amount: 15000,
-    currency: "NGN",
-    status: "failed" as const,
-    date: "Dec 2, 2024",
-  },
-];
+type Transaction = {
+  id: string;
+  reference: string;
+  customer: string;
+  email: string;
+  amount: number;
+  currency: string;
+  status: "successful" | "pending" | "failed";
+  date: string;
+  description?: string;
+};
 
 export default function MerchantDashboard() {
   const user = getMerchantUser();
-
   const hasDemoData = Boolean(user?.hasDemoData);
   const kycStatus: "not_started" | "pending" | "approved" | "rejected" =
-    user?.hasKyc ? "approved" : "not_started";
+    user?.kycStatus ?? "not_started";
 
-  const publicKey = "pk_live_abc123xyz456def789";
-  const secretKey = "sk_live_secret_key_hidden_for_security";
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: `${label} copied to clipboard.`,
-    });
-  };
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (!user?.merchantId) {
+        setTransactions([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const resp = await fetch(`${API_BASE_URL}/transactions?merchant_id=${user.merchantId}`);
+        if (!resp.ok) throw new Error("Failed to load transactions");
+        const data = await resp.json();
+        const list: Transaction[] = (Array.isArray(data) ? data : data.data || []).map((tx: any) => {
+          const rawAmount = tx.amount || 0;
+          return {
+            id: tx.id,
+            reference: tx.reference || tx.id,
+            customer: tx.customer_name || tx.customer || "Customer",
+            email: tx.customer_email || "",
+            amount: rawAmount / 100,
+            currency: tx.currency || "NGN",
+            status: (tx.status || "pending") as Transaction["status"],
+            date: tx.created_at || new Date().toISOString(),
+            description: tx.description,
+          };
+        });
+        setTransactions(list);
+      } catch {
+        setTransactions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (!hasDemoData) {
+      fetchTransactions();
+    } else {
+      setTransactions([]);
+    }
+  }, [user?.merchantId, hasDemoData]);
+
+  const revenue = useMemo(() => {
+    const total = transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+    return total;
+  }, [transactions]);
+
+  const formatCurrency = (amount: number, currency: string) =>
+    new Intl.NumberFormat("en-NG", { style: "currency", currency }).format(amount || 0);
 
   return (
     <DashboardLayout type="merchant" title="Dashboard">
@@ -93,17 +95,17 @@ export default function MerchantDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Total Revenue"
-          value={hasDemoData ? "₦45.2M" : "₦0"}
-          change={hasDemoData ? "+15.3% from last month" : "No volume yet"}
-          changeType={hasDemoData ? "positive" : "neutral"}
+          value={hasDemoData ? "₦0" : formatCurrency(revenue, "NGN")}
+          change={transactions.length ? `${transactions.length} transactions` : "No volume yet"}
+          changeType={transactions.length ? "positive" : "neutral"}
           icon={DollarSign}
           iconColor="bg-success/10 text-success"
           delay={0}
         />
         <StatsCard
           title="Available Balance"
-          value={hasDemoData ? "₦8.5M" : "₦0"}
-          change={hasDemoData ? "Last payout: Dec 1" : "No payouts yet"}
+          value={hasDemoData ? "₦0" : "₦0"}
+          change={hasDemoData ? "No payouts yet" : "No payouts yet"}
           changeType="neutral"
           icon={Wallet}
           iconColor="bg-primary/10 text-primary"
@@ -111,18 +113,18 @@ export default function MerchantDashboard() {
         />
         <StatsCard
           title="Transactions"
-          value={hasDemoData ? "2,847" : "0"}
-          change={hasDemoData ? "+234 this week" : "No activity"}
-          changeType={hasDemoData ? "positive" : "neutral"}
+          value={String(transactions.length)}
+          change={transactions.length ? "Recent activity" : "No activity"}
+          changeType={transactions.length ? "positive" : "neutral"}
           icon={CreditCard}
           iconColor="bg-warning/10 text-warning"
           delay={200}
         />
         <StatsCard
           title="Success Rate"
-          value={hasDemoData ? "97.8%" : "N/A"}
-          change={hasDemoData ? "+1.2% from last month" : "Awaiting transactions"}
-          changeType={hasDemoData ? "positive" : "neutral"}
+          value={transactions.length ? "—" : "N/A"}
+          change={transactions.length ? "Based on live data" : "Awaiting transactions"}
+          changeType={transactions.length ? "neutral" : "neutral"}
           icon={TrendingUp}
           iconColor="bg-accent text-accent-foreground"
           delay={300}
@@ -138,15 +140,56 @@ export default function MerchantDashboard() {
 
       {/* Recent Transactions */}
       <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Recent Transactions</h2>
-            <Button variant="outline" size="sm">
-              View All
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <TransactionTable transactions={hasDemoData ? demoTransactions : []} />
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Recent Transactions</h2>
+          <Button variant="outline" size="sm">
+            View All
+            <ArrowUpRight className="h-4 w-4" />
+          </Button>
         </div>
+        <TransactionTable
+          transactions={transactions}
+          onSelect={(tx) => setSelectedTx(tx)}
+          isLoading={isLoading}
+        />
+      </div>
+
+      <Dialog open={Boolean(selectedTx)} onOpenChange={() => setSelectedTx(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transaction details</DialogTitle>
+          </DialogHeader>
+          {selectedTx && (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Reference</span>
+                <span className="font-mono">{selectedTx.reference}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Amount</span>
+                <span className="font-semibold">
+                  {formatCurrency(selectedTx.amount, selectedTx.currency)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <Badge className="capitalize">{selectedTx.status}</Badge>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Customer</p>
+                <p className="font-medium">{selectedTx.customer}</p>
+                <p className="text-muted-foreground">{selectedTx.email}</p>
+              </div>
+              {selectedTx.description && (
+                <div>
+                  <p className="text-muted-foreground">Description</p>
+                  <p>{selectedTx.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

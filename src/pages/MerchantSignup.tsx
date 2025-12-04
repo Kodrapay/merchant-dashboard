@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { setMerchantUser } from "@/lib/merchant-user";
+import { API_BASE_URL } from "@/lib/api-client";
 
 export default function MerchantSignup() {
   const [email, setEmail] = useState("");
@@ -24,7 +25,7 @@ export default function MerchantSignup() {
 
     try {
       // Create merchant in database
-      const response = await fetch("http://localhost:7002/merchants", {
+      const response = await fetch(`${API_BASE_URL}/merchants`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -46,7 +47,8 @@ export default function MerchantSignup() {
       localStorage.setItem("authToken", `merchant-${data.id}`);
       setMerchantUser({
         email,
-        businessName: business || "New Business",
+        businessName: data.business_name || business || "New Business",
+        merchantId: data.id,
         kycStatus: "not_started",
         hasDemoData: false,
         createdAt: new Date().toISOString(),

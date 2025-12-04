@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -16,6 +16,7 @@ import { getMerchantUser } from "@/lib/merchant-user";
 
 interface SidebarProps {
   type: "admin" | "merchant";
+  forceKycOnly?: boolean;
 }
 
 const adminLinks = [
@@ -38,13 +39,14 @@ const merchantLinks = [
   { href: "/merchant/settings", icon: Settings, label: "Settings" },
 ];
 
-export function DashboardSidebar({ type }: SidebarProps) {
+export function DashboardSidebar({ type, forceKycOnly }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const user = getMerchantUser();
   const links =
     type === "admin"
       ? adminLinks
-      : user?.kycStatus === "approved"
+      : !forceKycOnly && user?.kycStatus === "approved"
         ? merchantLinks
         : [{ href: "/merchant/kyc", icon: FileCheck, label: "Business KYC" }];
 
@@ -88,13 +90,17 @@ export function DashboardSidebar({ type }: SidebarProps) {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-3">
-          <Link
-            to="/"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
+          <button
+            onClick={() => {
+              localStorage.removeItem("authToken");
+              localStorage.removeItem("merchantUser");
+              navigate("/");
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
           >
             <LogOut className="h-5 w-5" />
             Exit Dashboard
-          </Link>
+          </button>
         </div>
       </div>
     </aside>

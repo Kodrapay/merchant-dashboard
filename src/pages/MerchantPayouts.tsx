@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,24 +9,51 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, RefreshCw, ArrowUpRight, Calendar } from "lucide-react";
-
-const payouts = [
-  { id: "pyt_1001", amount: "₦4,500,000", status: "processing", date: "Dec 3, 2024", bank: "GTBank •••• 1234" },
-  { id: "pyt_1002", amount: "₦2,100,000", status: "sent", date: "Dec 2, 2024", bank: "GTBank •••• 1234" },
-  { id: "pyt_1003", amount: "₦950,000", status: "scheduled", date: "Dec 4, 2024", bank: "GTBank •••• 1234" },
-];
+import { API_BASE_URL } from "@/lib/api-client";
+import { getMerchantUser } from "@/lib/merchant-user";
 
 const statusTone = {
   processing: "text-warning bg-warning/10",
   sent: "text-success bg-success/10",
   scheduled: "text-muted-foreground bg-muted/60",
+  pending: "text-muted-foreground bg-muted/60",
 };
 
 export default function MerchantPayouts() {
+  const user = getMerchantUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState("");
   const [bank, setBank] = useState("GTBank •••• 1234");
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.merchantId) {
+        setPayouts([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const resp = await fetch(`${API_BASE_URL}/payouts?merchant_id=${user.merchantId}`);
+        const data = await resp.json();
+        const list = (Array.isArray(data) ? data : data.data || []).map((p: any) => ({
+          id: p.id,
+          amount: (p.amount || 0) / 100,
+          status: p.status || "pending",
+          date: p.created_at || "",
+          bank: p.bank || p.recipient_bank || "",
+        }));
+        setPayouts(list);
+      } catch {
+        setPayouts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [user?.merchantId]);
 
   const submitPayout = () => {
     setIsDialogOpen(false);
@@ -42,17 +69,19 @@ export default function MerchantPayouts() {
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Available balance</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">₦8,500,000</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">
+            ₦{payouts.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}
+          </p>
         </Card>
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Next payout</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">₦3,200,000</p>
-          <p className="text-xs text-muted-foreground mt-1">Arriving Dec 5, 2024</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">₦0</p>
+          <p className="text-xs text-muted-foreground mt-1">Arriving soon</p>
         </Card>
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Pending review</p>
-          <p className="text-2xl font-semibold text-warning mt-1">1</p>
-          <p className="text-xs text-muted-foreground mt-1">Compliance needs additional info</p>
+          <p className="text-2xl font-semibold text-warning mt-1">0</p>
+          <p className="text-xs text-muted-foreground mt-1">No pending reviews</p>
         </Card>
       </div>
 
@@ -63,7 +92,7 @@ export default function MerchantPayouts() {
               <Input placeholder="Search payout ID" className="pr-10" />
               <Calendar className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => window.location.reload()}>
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
@@ -85,11 +114,17 @@ export default function MerchantPayouts() {
         </div>
         <Separator />
         <div className="divide-y divide-border">
+          {isLoading && (
+            <div className="py-4 text-sm text-muted-foreground text-center">Loading payouts...</div>
+          )}
+          {!isLoading && payouts.length === 0 && (
+            <div className="py-4 text-sm text-muted-foreground text-center">No payouts yet.</div>
+          )}
           {payouts.map((payout) => (
             <div key={payout.id} className="flex items-center justify-between py-4">
               <div>
                 <p className="text-sm text-muted-foreground">{payout.id}</p>
-                <p className="font-semibold text-foreground">{payout.amount}</p>
+                <p className="font-semibold text-foreground">₦{payout.amount.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">{payout.bank}</p>
               </div>
               <div className="text-right">

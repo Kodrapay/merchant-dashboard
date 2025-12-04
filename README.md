@@ -17,7 +17,7 @@ The merchant dashboard for KodraPay provides merchants with insights and managem
 ### Prerequisites
 
 - Node.js 18+ and npm/bun
-- API Gateway running on `http://localhost:7000`
+- API Gateway running on `http://localhost:8000`
 
 ### Installation
 
@@ -33,7 +33,7 @@ bun install
 Create a `.env.local` file:
 
 ```
-VITE_API_BASE_URL=http://localhost:7000
+VITE_API_BASE_URL=http://localhost:8000
 VITE_APP_TITLE=Merchant Dashboard
 ```
 

@@ -1,6 +1,7 @@
 export type MerchantUser = {
   email: string;
   businessName: string;
+  merchantId?: string;
   kycStatus: "not_started" | "pending" | "approved" | "rejected";
   hasDemoData?: boolean;
   createdAt?: string;
@@ -35,7 +36,8 @@ export const clearMerchantUser = () => {
 
 export const deriveBusinessName = (email: string) => {
   const prefix = email.split("@")[0] || "Merchant";
-  return prefix
+  const normalized = prefix.length < 3 ? "Merchant" : prefix;
+  return normalized
     .split(/[\.\-\_]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
