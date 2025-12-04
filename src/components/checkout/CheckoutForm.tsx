@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, CreditCard, Lock, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api-client";
+import { useToast } from "@/hooks/use-toast";
 
 interface CheckoutFormProps {
   initialAmount?: number;
@@ -12,6 +14,7 @@ interface CheckoutFormProps {
   description?: string;
   allowCustomAmount?: boolean;
   reference?: string | null;
+  merchantId?: string | null;
 }
 
 export function CheckoutForm({
@@ -21,6 +24,7 @@ export function CheckoutForm({
   description,
   allowCustomAmount = false,
   reference,
+  merchantId,
 }: CheckoutFormProps) {
   const [step, setStep] = useState<"details" | "payment" | "success">("details");
   const [email, setEmail] = useState("");
@@ -29,6 +33,7 @@ export function CheckoutForm({
   const [cvv, setCvv] = useState("");
   const [amount, setAmount] = useState<number>(initialAmount ?? 0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   const formatAmount = (amount: number, currency: string) => {
     return new Intl.NumberFormat("en-NG", {
@@ -60,6 +65,32 @@ export function CheckoutForm({
     setIsProcessing(true);
     // Simulate payment processing
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (merchantId) {
+      try {
+        const token = localStorage.getItem("authToken");
+        await fetch(`${API_BASE_URL}/transactions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            amount: Math.round(amount * 100),
+            currency,
+            customer_id: email,
+            merchant_id: merchantId,
+            description: description || "Checkout payment",
+            reference,
+          }),
+        });
+      } catch {
+        toast({
+          title: "Could not record transaction",
+          description: "Payment went through, but saving the record failed.",
+          variant: "destructive",
+        });
+      }
+    }
     setIsProcessing(false);
     setStep("success");
   };

@@ -9,9 +9,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api-client";
+import { getMerchantUser } from "@/lib/merchant-user";
 import { Badge } from "@/components/ui/badge";
 
-type BusinessType = "registered" | "startup";
+type BusinessType = "registered" | "startup" | "small_business";
 type DocumentType = "cac" | "tin" | "memart" | "directors_id" | "utility_bill" | "bank_statement";
 
 interface UploadedDocument {
@@ -25,6 +27,7 @@ export default function MerchantBusinessKYC() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
   const { toast } = useToast();
+  const user = getMerchantUser();
 
   // Form state for registered business
   const [businessName, setBusinessName] = useState("");
@@ -115,7 +118,7 @@ export default function MerchantBusinessKYC() {
   };
 
   const getRequiredDocuments = (): { type: DocumentType; label: string; description: string }[] => {
-    if (businessType === "startup") {
+    if (businessType === "startup" || businessType === "small_business") {
       return [
         { type: "directors_id", label: "Director's ID", description: "Valid government-issued ID (NIN, Driver's License, or International Passport)" },
         { type: "utility_bill", label: "Utility Bill", description: "Recent utility bill (not older than 3 months) showing business address" },
@@ -132,7 +135,7 @@ export default function MerchantBusinessKYC() {
     ];
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
     // Validate required documents
@@ -148,15 +151,58 @@ export default function MerchantBusinessKYC() {
       return;
     }
 
+    if (!user?.merchantId) {
+      toast({
+        title: "Not logged in",
+        description: "Please sign in again and retry your KYC submission.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await fetch(`${API_BASE_URL}/kyc/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          merchant_id: user.merchantId,
+          business_type: businessType,
+          business_name: businessName,
+          cac_number: cacNumber,
+          tin_number: tinNumber,
+          business_address: businessAddress,
+          city,
+          state,
+          postal_code: postalCode,
+          incorporation_date: incorporationDate,
+          business_category: businessCategory,
+          director_name: directorName,
+          director_bvn: directorBVN,
+          director_phone: directorPhone,
+          director_email: directorEmail,
+          documents: uploadedDocuments.reduce<Record<string, string>>((acc, doc) => {
+            acc[doc.type] = doc.fileName;
+            return acc;
+          }, {}),
+        }),
+      });
+
       toast({
         title: "KYC submitted successfully",
         description: "Your business verification is under review. We'll notify you within 24-48 hours.",
       });
-    }, 1500);
+    } catch (error) {
+      console.error("KYC submit failed", error);
+      toast({
+        title: "Submission failed",
+        description: "We could not submit your KYC. Please retry shortly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -213,6 +259,18 @@ export default function MerchantBusinessKYC() {
                       <p className="font-medium text-foreground">Startup/Unregistered</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         Early-stage business without CAC registration
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+                    businessType === "small_business" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                  }`}>
+                    <RadioGroupItem value="small_business" id="small_business" className="mt-1" />
+                    <div>
+                      <p className="font-medium text-foreground">Small Business</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Sole proprietors or small shops without formal registration
                       </p>
                     </div>
                   </label>

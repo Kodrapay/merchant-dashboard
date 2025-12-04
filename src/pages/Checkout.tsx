@@ -5,6 +5,7 @@ import { Shield } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { getMerchantUser } from "@/lib/merchant-user";
 
 export default function Checkout() {
   const location = useLocation();
@@ -18,6 +19,7 @@ export default function Checkout() {
     searchParams.get("description") || "Premium Subscription - 1 Month";
   const merchantName = searchParams.get("merchant") || "TechStore NG";
   const reference = searchParams.get("ref");
+  const merchantId = searchParams.get("merchant_id") || getMerchantUser()?.merchantId || null;
   const mode = (searchParams.get("mode") || "fixed").toLowerCase();
   const hasValidAmount = Number.isFinite(amountParam) && amountParam > 0;
   const allowCustomAmount = mode === "open" || !hasValidAmount;
@@ -103,6 +105,7 @@ export default function Checkout() {
                 description={description}
                 allowCustomAmount={allowCustomAmount}
                 reference={reference}
+                merchantId={merchantId}
               />
             </div>
           ) : (

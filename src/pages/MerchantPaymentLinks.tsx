@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Copy, ExternalLink, Link2, CircleDot } from "lucide-react";
+import { getMerchantUser } from "@/lib/merchant-user";
+import { apiClient, fetchFromAPI } from "@/lib/api-client";
 
 type PaymentLink = {
   id: string;
@@ -42,11 +44,48 @@ export default function MerchantPaymentLinks() {
   const [description, setDescription] = useState("Payment link for customer");
   const [linkType, setLinkType] = useState<"fixed" | "open">("fixed");
   const [links, setLinks] = useState<PaymentLink[]>([]);
+  const user = getMerchantUser();
 
   const baseCheckoutUrl = useMemo(() => `${getOrigin()}/merchant/checkout`, []);
 
-  const handleCreateLink = (event: FormEvent) => {
+  useEffect(() => {
+    // Fetch payment links from backend
+    const loadPaymentLinks = async () => {
+      if (!user?.merchantId) return;
+
+      try {
+        const response = await fetchFromAPI(apiClient.paymentLinks.list(user.merchantId));
+        const data: any[] = Array.isArray(response) ? response : response.links || response.data || [];
+        setLinks(
+          data.map((link) => ({
+            id: link.id,
+            amount: link.amount ? Number(link.amount) : undefined,
+            currency: link.currency || "NGN",
+            description: link.description || "",
+            url: `${baseCheckoutUrl}?ref=${link.reference || link.id}&merchant_id=${link.merchant_id}&mode=${link.mode}${link.amount ? `&amount=${link.amount}` : ""}&currency=${link.currency || "NGN"}&description=${encodeURIComponent(link.description || "")}`,
+            createdAt: link.created_at || "",
+            type: (link.mode || "fixed") as "fixed" | "open",
+          })),
+        );
+      } catch (error) {
+        console.error("Failed to load payment links:", error);
+      }
+    };
+
+    loadPaymentLinks();
+  }, [user]);
+
+  const handleCreateLink = async (event: FormEvent) => {
     event.preventDefault();
+
+    if (!user?.merchantId) {
+      toast({
+        title: "Error",
+        description: "Merchant ID not found. Please log in again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const parsedAmount = Number(amount);
     const safeAmount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : undefined;
@@ -60,37 +99,43 @@ export default function MerchantPaymentLinks() {
     }
     const safeCurrency = currency.trim().toUpperCase() || "NGN";
     const trimmedDescription = description.trim() || "Payment link";
-    const id = `pl_${Date.now()}`;
 
-    const params = new URLSearchParams();
-    params.set("currency", safeCurrency);
-    params.set("description", trimmedDescription);
-    params.set("ref", id);
-    params.set("merchant", "TechStore NG");
-    if (linkType === "fixed" && safeAmount) {
-      params.set("amount", String(safeAmount));
-      params.set("mode", "fixed");
-    } else {
-      params.set("mode", "open");
+    try {
+      const response = await fetchFromAPI(apiClient.paymentLinks.create, {
+        method: "POST",
+        body: JSON.stringify({
+          merchant_id: user.merchantId,
+          mode: linkType,
+          amount: safeAmount,
+          currency: safeCurrency,
+          description: trimmedDescription,
+          reference: `pl_${Date.now()}`,
+        }),
+      });
+
+      const newLink: PaymentLink = {
+        id: response.id || response.reference,
+        amount: response.amount,
+        currency: response.currency,
+        description: response.description,
+        url: `${baseCheckoutUrl}?ref=${response.reference || response.id}&merchant_id=${user.merchantId}&mode=${response.mode}${response.amount ? `&amount=${response.amount}` : ""}&currency=${response.currency || "NGN"}&description=${encodeURIComponent(response.description || "")}`,
+        createdAt: response.created_at,
+        type: response.mode,
+      };
+
+      setLinks((current) => [newLink, ...current].slice(0, 50));
+      toast({
+        title: "Payment link created",
+        description: "Copy and share this link with your customer.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to create payment link",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+      console.error("Error creating payment link:", error);
     }
-
-    const url = `${baseCheckoutUrl}?${params.toString()}`;
-
-    const newLink: PaymentLink = {
-      id,
-      amount: safeAmount,
-      currency: safeCurrency,
-      description: trimmedDescription,
-      url,
-      createdAt: new Date().toISOString(),
-      type: linkType,
-    };
-
-    setLinks((current) => [newLink, ...current].slice(0, 5));
-    toast({
-      title: "Payment link created",
-      description: "Copy and share this link with your customer.",
-    });
   };
 
   const copyToClipboard = async (url: string) => {

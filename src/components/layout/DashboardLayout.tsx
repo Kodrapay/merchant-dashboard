@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getMerchantUser } from "@/lib/merchant-user";
 import { useEffect, useState } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -25,6 +26,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, type, title, forceKycOnly = false }: DashboardLayoutProps) {
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "approved" | "rejected">("not_started");
+  const { data: notifications, isLoading } = useNotifications();
 
   useEffect(() => {
     if (type === "merchant") {
@@ -67,17 +69,30 @@ export function DashboardLayout({ children, type, title, forceKycOnly = false }:
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    3
-                  </span>
+                  {notifications && notifications.length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      {notifications.length}
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>New payment received ₦45,000</DropdownMenuItem>
-                <DropdownMenuItem>Settlement scheduled for Dec 5</DropdownMenuItem>
-                <DropdownMenuItem>API key accessed from new IP</DropdownMenuItem>
+                {isLoading ? (
+                  <DropdownMenuItem>Loading...</DropdownMenuItem>
+                ) : notifications && notifications.length > 0 ? (
+                  notifications.map((notification) => (
+                    <DropdownMenuItem key={notification.id}>
+                      <div className="flex flex-col">
+                        <span className="font-semibold">{notification.subject}</span>
+                        <span className="text-xs text-muted-foreground">{notification.message}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <DropdownMenuItem>No new notifications</DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             
@@ -88,6 +103,14 @@ export function DashboardLayout({ children, type, title, forceKycOnly = false }:
                     <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-sm font-semibold text-primary">{initials}</span>
                     </div>
+                    {type === "merchant" && (
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          kycStatus === "approved" ? "bg-success" : kycStatus === "pending" ? "bg-warning" : "bg-destructive"
+                        }`}
+                        title={`Status: ${kycStatus}`}
+                      />
+                    )}
                     <span className="text-sm font-semibold text-foreground">
                       {type === "merchant" ? businessName || "Your business" : "KodraPay Admin"}
                     </span>

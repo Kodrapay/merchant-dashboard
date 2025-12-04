@@ -17,6 +17,15 @@ export const apiClient = {
     get: (id: string) => `${API_BASE_URL}/merchants/${id}`,
     profile: `${API_BASE_URL}/merchants/profile`,
     settings: `${API_BASE_URL}/merchants/settings`,
+    apiKeys: (id: string) => `${API_BASE_URL}/merchants/${id}/api-keys`,
+    rotateApiKey: (id: string) => `${API_BASE_URL}/merchants/${id}/api-keys/rotate`,
+  },
+
+  // Payment Links (via Merchant Service)
+  paymentLinks: {
+    create: `${API_BASE_URL}/payment-links`,
+    list: (merchantId: string) => `${API_BASE_URL}/merchants/${merchantId}/payment-links`,
+    get: (id: string) => `${API_BASE_URL}/payment-links/${id}`,
   },
 
   // Transaction Service (Port 7004)
