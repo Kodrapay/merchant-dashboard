@@ -1,8 +1,27 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { Shield } from "lucide-react";
 
 export default function Checkout() {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const amountParam = Number(searchParams.get("amount"));
+  const currency = (searchParams.get("currency") || "NGN").toUpperCase();
+  const description =
+    searchParams.get("description") || "Premium Subscription - 1 Month";
+  const merchantName = searchParams.get("merchant") || "TechStore NG";
+  const reference = searchParams.get("ref");
+  const mode = (searchParams.get("mode") || "fixed").toLowerCase();
+  const hasValidAmount = Number.isFinite(amountParam) && amountParam > 0;
+  const allowCustomAmount = mode === "open" || !hasValidAmount;
+  const initialAmount = hasValidAmount ? amountParam : allowCustomAmount ? undefined : 25000;
+
+  if (location.pathname.startsWith("/merchant/checkout") && !reference) {
+    return <Navigate to="/merchant/payment-links" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-muted flex flex-col">
       {/* Header */}
@@ -12,7 +31,7 @@ export default function Checkout() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
               <Shield className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold text-foreground">PayFlow</span>
+            <span className="text-lg font-bold text-foreground">KodraPay</span>
           </Link>
           <span className="text-sm text-muted-foreground">Secure Checkout</span>
         </div>
@@ -21,12 +40,23 @@ export default function Checkout() {
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
+          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="secondary">{currency}</Badge>
+            <span>
+              Paying {merchantName}
+              {reference ? ` • Link ${reference}` : ""}
+              {mode === "open" ? " • Customer sets amount" : ""}
+            </span>
+          </div>
+
           <div className="bg-card rounded-2xl shadow-lg border border-border p-8 animate-slide-up">
             <CheckoutForm
-              amount={25000}
-              currency="NGN"
-              merchantName="TechStore NG"
-              description="Premium Subscription - 1 Month"
+              initialAmount={initialAmount}
+              currency={currency}
+              merchantName={merchantName}
+              description={description}
+              allowCustomAmount={allowCustomAmount}
+              reference={reference}
             />
           </div>
 
@@ -56,7 +86,7 @@ export default function Checkout() {
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           Powered by{" "}
           <Link to="/" className="text-primary hover:underline">
-            PayFlow
+            KodraPay
           </Link>
         </div>
       </footer>

@@ -6,23 +6,28 @@ import { Shield, CreditCard, Lock, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CheckoutFormProps {
-  amount: number;
+  initialAmount?: number;
   currency: string;
   merchantName: string;
   description?: string;
+  allowCustomAmount?: boolean;
+  reference?: string | null;
 }
 
 export function CheckoutForm({
-  amount,
+  initialAmount,
   currency,
   merchantName,
   description,
+  allowCustomAmount = false,
+  reference,
 }: CheckoutFormProps) {
   const [step, setStep] = useState<"details" | "payment" | "success">("details");
   const [email, setEmail] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
+  const [amount, setAmount] = useState<number>(initialAmount ?? 0);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const formatAmount = (amount: number, currency: string) => {
@@ -76,19 +81,46 @@ export function CheckoutForm({
     );
   }
 
+  const feePercentage = 0.015;
+  const fixedFee = currency === "NGN" ? 100 : 0;
+  const feeCap = currency === "NGN" ? 2000 : Infinity;
+  const platformFee = Math.min(Math.round(amount * feePercentage + fixedFee), feeCap);
+  const netToMerchant = Math.max(amount - platformFee, 0);
+  const amountValid = amount > 0 && Number.isFinite(amount);
+
   return (
     <div className="space-y-6">
       {/* Amount Display */}
       <div className="text-center pb-6 border-b border-border">
         <p className="text-sm text-muted-foreground mb-1">Pay {merchantName}</p>
-        <p className="text-4xl font-bold text-foreground">{formatAmount(amount, currency)}</p>
+        <p className="text-4xl font-bold text-foreground">
+          {amountValid ? formatAmount(amount, currency) : "Enter amount"}
+        </p>
         {description && (
           <p className="text-sm text-muted-foreground mt-2">{description}</p>
+        )}
+        {reference && (
+          <p className="text-xs text-muted-foreground mt-1">Link reference: {reference}</p>
         )}
       </div>
 
       {step === "details" && (
         <div className="space-y-4 animate-fade-in">
+          {allowCustomAmount && (
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                min="1"
+                value={amount ? String(amount) : ""}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                placeholder="Enter amount to pay"
+                className="h-12"
+                required
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <Input
@@ -104,7 +136,7 @@ export function CheckoutForm({
             className="w-full"
             size="lg"
             onClick={() => setStep("payment")}
-            disabled={!email}
+            disabled={!email || (allowCustomAmount && !amountValid)}
           >
             Continue to Payment
           </Button>
@@ -158,7 +190,7 @@ export function CheckoutForm({
             variant="hero"
             size="lg"
             onClick={handlePayment}
-            disabled={!cardNumber || !expiry || !cvv || isProcessing}
+            disabled={!cardNumber || !expiry || !cvv || isProcessing || !amountValid}
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
@@ -182,11 +214,28 @@ export function CheckoutForm({
         </div>
       )}
 
+      {/* Pricing model */}
+      <div className="rounded-lg border border-border p-4 bg-secondary/30 space-y-2 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Platform fee (1.5% + ₦100, capped at ₦2000)</span>
+          <span className="font-semibold">{amountValid ? formatAmount(platformFee, currency) : "-"}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Amount to merchant</span>
+          <span className="font-semibold">
+            {amountValid ? formatAmount(netToMerchant, currency) : "-"}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Fees are illustrative for this demo. The platform collects the fee per successful transaction.
+        </p>
+      </div>
+
       {/* Security Badge */}
       <div className="flex items-center justify-center gap-2 pt-4 border-t border-border">
         <Shield className="h-4 w-4 text-success" />
         <span className="text-xs text-muted-foreground">
-          Secured by PayFlow • 256-bit SSL encryption
+          Secured by KodraPay • 256-bit SSL encryption
         </span>
       </div>
     </div>

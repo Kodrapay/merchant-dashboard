@@ -1,73 +1,127 @@
-# Welcome to your Lovable project
+# Merchant Dashboard
 
-## Project info
+The merchant dashboard for KodraPay provides merchants with insights and management tools for their payment operations including:
 
-**URL**: https://lovable.dev/projects/8243f291-7b2e-4d8d-b749-2220e834a387
+- Dashboard overview with key metrics
+- Transaction management and tracking
+- Revenue analytics
+- API key management
+- Wallet and balance management
+- Payout scheduling
+- Settlement tracking
+- Checkout integration
+- Webhook management
 
-## How can I edit this code?
+## Getting Started
 
-There are several ways of editing your application.
+### Prerequisites
 
-**Use Lovable**
+- Node.js 18+ and npm/bun
+- API Gateway running on `http://localhost:7000`
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/8243f291-7b2e-4d8d-b749-2220e834a387) and start prompting.
+### Installation
 
-Changes made via Lovable will be committed automatically to this repo.
+```bash
+cd merchant-dashboard
+npm install
+# or
+bun install
+```
 
-**Use your preferred IDE**
+### Environment Variables
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Create a `.env.local` file:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```
+VITE_API_BASE_URL=http://localhost:7000
+VITE_APP_TITLE=Merchant Dashboard
+```
 
-Follow these steps:
+### Development
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Visit `http://localhost:5173` (or the port shown in console)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Architecture
 
-## What technologies are used for this project?
+### Services Used
 
-This project is built with:
+- **Merchant Service** (Port 7002): Merchant profile and settings
+- **Auth Service** (Port 7001): Authentication and authorization
+- **Transaction Service** (Port 7004): Transaction data and search
+- **Checkout Service** (Port 7005): Checkout operations
+- **Wallet Ledger Service** (Port 7007): Wallet and balance information
+- **Payout Service** (Port 7009): Payout scheduling and management
+- **Settlement Service** (Port 7008): Settlement information
+- **Fee Service** (Port 7017): Fee information and calculations
+- **FX Service** (Port 7018): Exchange rates and conversions
+- **Webhook Service** (Port 7006): Webhook configuration and logs
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### API Integration
 
-## How can I deploy this project?
+All API calls go through the API Gateway at port 7000. See `src/lib/api-client.ts` for endpoint configuration.
 
-Simply open [Lovable](https://lovable.dev/projects/8243f291-7b2e-4d8d-b749-2220e834a387) and click on Share -> Publish.
+## Structure
 
-## Can I connect a custom domain to my Lovable project?
+```
+merchant-dashboard/
+├── src/
+│   ├── components/       # Reusable UI components
+│   ├── pages/           # Page components
+│   │   ├── MerchantDashboard.tsx
+│   │   ├── Checkout.tsx
+│   │   ├── Index.tsx
+│   │   └── NotFound.tsx
+│   ├── lib/             # Utilities and API client
+│   │   ├── api-client.ts
+│   │   └── utils.ts
+│   ├── hooks/           # Custom React hooks
+│   ├── App.tsx
+│   └── main.tsx
+├── .env.local           # Local environment configuration
+└── package.json
+```
 
-Yes, you can!
+## Available Routes
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- `/` - Home page
+- `/merchant/login` - Merchant authentication
+- `/dashboard` - Merchant dashboard (alias of `/merchant`)
+- `/merchant` - Overview dashboard
+- `/merchant/transactions` - Transaction history
+- `/merchant/payouts` - Payouts and balances
+- `/merchant/settings` - Merchant settings (includes API keys & webhooks)
+- `/merchant/settings` - Merchant settings
+- `/checkout` - Checkout page
+- `*` - 404 Not Found
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Technologies
+
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **TailwindCSS** - Styling
+- **shadcn/ui** - Component library
+- **React Router** - Routing
+- **React Query** - Data fetching
+- **Zod** - Schema validation
+
+## Development Notes
+
+- Use the API client configuration in `src/lib/api-client.ts` for all API calls
+- Ensure auth token is properly stored and sent with requests
+- Components use shadcn/ui for consistent styling
+- API keys are managed securely and should never be exposed in client-side code
+
+## TODO
+
+- KYC flow pages (document upload, verification steps, statuses)
