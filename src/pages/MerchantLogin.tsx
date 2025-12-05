@@ -13,6 +13,7 @@ import {
   setMerchantUser,
 } from "@/lib/merchant-user";
 import { API_BASE_URL } from "@/lib/api-client";
+import { setSessionCookie } from "@/lib/session";
 
 export default function MerchantLogin() {
   const [email, setEmail] = useState("");
@@ -21,6 +22,12 @@ export default function MerchantLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const normalizeKyc = (status?: string) => {
+    if (!status) return "not_started";
+    if (status === "completed") return "approved";
+    return status;
+  };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -32,17 +39,30 @@ export default function MerchantLogin() {
       body: JSON.stringify({ email, password }),
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error("Invalid credentials");
-        const data = await res.json();
-        const token = data.token || data.access_token;
-        if (!token) throw new Error("No token returned");
-        localStorage.setItem("authToken", token);
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const message = payload?.error || "Invalid credentials";
+          throw new Error(message);
+        }
+
+        // Store session ID in cookie instead of token in localStorage
+        const sessionId = payload.session_id;
+        if (sessionId) {
+          setSessionCookie(sessionId, 1); // 1 day expiry
+        }
+
+        // Keep token for backward compatibility (if any services still use it)
+        const token = payload.token || payload.access_token;
+        if (token) {
+          localStorage.setItem("authToken", token);
+        }
+
         const existingUser = getMerchantUser();
         setMerchantUser({
-          email,
-          businessName: data.business_name || existingUser?.businessName || deriveBusinessName(email),
-          merchantId: data.merchant_id || existingUser?.merchantId,
-          kycStatus: data.kyc_status || existingUser?.kycStatus || "not_started",
+          email: payload.email || email,
+          businessName: payload.business_name || existingUser?.businessName || deriveBusinessName(email),
+          merchantId: payload.merchant_id || existingUser?.merchantId,
+          kycStatus: normalizeKyc(payload.kyc_status || existingUser?.kycStatus),
           hasDemoData: false,
           createdAt: existingUser?.createdAt ?? new Date().toISOString(),
         });
@@ -51,7 +71,7 @@ export default function MerchantLogin() {
           description: "Welcome back. Redirecting to your dashboard.",
         });
         const nextUser = getMerchantUser();
-        navigate(nextUser && nextUser.kycStatus !== "approved" ? "/merchant/kyc" : "/merchant");
+        navigate(nextUser && normalizeKyc(nextUser.kycStatus) !== "approved" ? "/merchant/kyc" : "/merchant");
       })
       .catch((err) => {
         toast({

@@ -3,6 +3,7 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export const apiClient = {
+  base: API_BASE_URL,
   // Auth Service (Port 7001)
   auth: {
     login: `${API_BASE_URL}/auth/login`,

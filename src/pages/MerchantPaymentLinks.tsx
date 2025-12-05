@@ -44,17 +44,18 @@ export default function MerchantPaymentLinks() {
   const [description, setDescription] = useState("Payment link for customer");
   const [linkType, setLinkType] = useState<"fixed" | "open">("fixed");
   const [links, setLinks] = useState<PaymentLink[]>([]);
-  const user = getMerchantUser();
+  const user = useMemo(() => getMerchantUser(), []);
+  const merchantId = user?.merchantId;
 
   const baseCheckoutUrl = useMemo(() => `${getOrigin()}/merchant/checkout`, []);
 
   useEffect(() => {
     // Fetch payment links from backend
     const loadPaymentLinks = async () => {
-      if (!user?.merchantId) return;
+      if (!merchantId) return;
 
       try {
-        const response = await fetchFromAPI(apiClient.paymentLinks.list(user.merchantId));
+        const response = await fetchFromAPI(apiClient.paymentLinks.list(merchantId));
         const data: any[] = Array.isArray(response) ? response : response.links || response.data || [];
         setLinks(
           data.map((link) => ({
@@ -73,7 +74,7 @@ export default function MerchantPaymentLinks() {
     };
 
     loadPaymentLinks();
-  }, [user]);
+  }, [merchantId, baseCheckoutUrl]);
 
   const handleCreateLink = async (event: FormEvent) => {
     event.preventDefault();

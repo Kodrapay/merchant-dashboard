@@ -8,9 +8,17 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, RefreshCw, ArrowUpRight, Calendar } from "lucide-react";
+import { Wallet, RefreshCw, ArrowUpRight, Calendar, Loader2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-client";
 import { getMerchantUser } from "@/lib/merchant-user";
+import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const statusTone = {
   processing: "text-warning bg-warning/10",
@@ -19,49 +27,180 @@ const statusTone = {
   pending: "text-muted-foreground bg-muted/60",
 };
 
+// Nigerian banks list
+const NIGERIAN_BANKS = [
+  { code: "044", name: "Access Bank" },
+  { code: "063", name: "Access Bank (Diamond)" },
+  { code: "050", name: "Ecobank Nigeria" },
+  { code: "070", name: "Fidelity Bank" },
+  { code: "011", name: "First Bank of Nigeria" },
+  { code: "214", name: "First City Monument Bank" },
+  { code: "058", name: "Guaranty Trust Bank" },
+  { code: "030", name: "Heritage Bank" },
+  { code: "301", name: "Jaiz Bank" },
+  { code: "082", name: "Keystone Bank" },
+  { code: "526", name: "Parallex Bank" },
+  { code: "076", name: "Polaris Bank" },
+  { code: "101", name: "Providus Bank" },
+  { code: "221", name: "Stanbic IBTC Bank" },
+  { code: "068", name: "Standard Chartered Bank" },
+  { code: "232", name: "Sterling Bank" },
+  { code: "100", name: "Suntrust Bank" },
+  { code: "032", name: "Union Bank of Nigeria" },
+  { code: "033", name: "United Bank For Africa" },
+  { code: "215", name: "Unity Bank" },
+  { code: "035", name: "Wema Bank" },
+  { code: "057", name: "Zenith Bank" },
+];
+
 export default function MerchantPayouts() {
   const user = getMerchantUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState("");
-  const [bank, setBank] = useState("GTBank •••• 1234");
+  const [selectedBank, setSelectedBank] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [isResolvingAccount, setIsResolvingAccount] = useState(false);
   const [payouts, setPayouts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    const load = async () => {
-      if (!user?.merchantId) {
-        setPayouts([]);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const resp = await fetch(`${API_BASE_URL}/payouts?merchant_id=${user.merchantId}`);
-        const data = await resp.json();
-        const list = (Array.isArray(data) ? data : data.data || []).map((p: any) => ({
-          id: p.id,
-          amount: (p.amount || 0) / 100,
-          status: p.status || "pending",
-          date: p.created_at || "",
-          bank: p.bank || p.recipient_bank || "",
-        }));
-        setPayouts(list);
-      } catch {
-        setPayouts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
+    refreshPayouts();
   }, [user?.merchantId]);
 
+  const refreshPayouts = async () => {
+    if (!user?.merchantId) {
+      setPayouts([]);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/payouts?merchant_id=${user.merchantId}`);
+      const data = await resp.json();
+      const list = (Array.isArray(data) ? data : data.data || data.payouts || []).map((p: any) => ({
+        id: p.id,
+        amount: (p.amount || 0) / 100,
+        status: p.status || "pending",
+        date: p.created_at || "",
+        bank: p.bank || p.recipient_bank || "",
+      }));
+      setPayouts(list);
+    } catch {
+      setPayouts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Resolve account name using bank code and account number
+  const resolveAccountName = async (bankCode: string, accNumber: string) => {
+    if (accNumber.length !== 10) {
+      setAccountName("");
+      return;
+    }
+
+    setIsResolvingAccount(true);
+    try {
+      // TODO: Replace with actual third-party API endpoint for account name resolution
+      // Example: Paystack, Flutterwave, or other Nigerian bank verification services
+      // const response = await fetch(`${API_BASE_URL}/banks/resolve?bank_code=${bankCode}&account_number=${accNumber}`);
+      // const data = await response.json();
+      // setAccountName(data.account_name);
+
+      // Placeholder logic for demo
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const bankName = NIGERIAN_BANKS.find((b) => b.code === bankCode)?.name || "Unknown Bank";
+      setAccountName(`Demo Account Holder (${bankName})`);
+    } catch (error) {
+      setAccountName("");
+      toast({
+        title: "Failed to resolve account",
+        description: "Could not verify account details. Please check and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResolvingAccount(false);
+    }
+  };
+
+  // Trigger account resolution when both bank and account number are valid
+  useEffect(() => {
+    if (selectedBank && accountNumber.length === 10) {
+      resolveAccountName(selectedBank, accountNumber);
+    } else {
+      setAccountName("");
+    }
+  }, [selectedBank, accountNumber]);
+
   const submitPayout = () => {
+    if (!user?.merchantId) {
+      toast({ title: "Not signed in", description: "Please log in again.", variant: "destructive" });
+      return;
+    }
+
+    const amountKobo = Math.max(0, Math.round(Number(payoutAmount || "0") * 100));
+    if (!amountKobo) {
+      toast({ title: "Enter an amount", description: "Amount must be greater than zero.", variant: "destructive" });
+      return;
+    }
+
+    if (!selectedBank || !accountNumber || !accountName) {
+      toast({
+        title: "Incomplete details",
+        description: "Please select a bank and enter a valid account number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const bankName = NIGERIAN_BANKS.find((b) => b.code === selectedBank)?.name || "Bank";
+
+    fetch(`${API_BASE_URL}/payouts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        merchant_id: user.merchantId,
+        amount: amountKobo,
+        currency: "NGN",
+        recipient_name: accountName,
+        recipient_account: accountNumber,
+        recipient_bank: bankName,
+        bank_code: selectedBank,
+        narration: "Payout request",
+      }),
+    })
+      .then(async (resp) => {
+        if (!resp.ok) throw new Error("Failed to submit payout");
+        const data = await resp.json();
+        setPayouts((prev) => [
+          {
+            id: data.id || `payout_${Date.now()}`,
+            amount: amountKobo / 100,
+            status: data.status || "processing",
+            date: data.created_at || format(new Date(), "yyyy-MM-dd HH:mm"),
+            bank: `${bankName} - ${accountNumber}`,
+          },
+          ...prev,
+        ]);
+        toast({
+          title: "Payout request submitted",
+          description: `We will process ₦${payoutAmount || "0"} to ${accountName}.`,
+        });
+      })
+      .catch((err) => {
+        toast({
+          title: "Payout request failed",
+          description: err.message || "Please try again shortly.",
+          variant: "destructive",
+        });
+      });
+
     setIsDialogOpen(false);
     setPayoutAmount("");
-    toast({
-      title: "Payout request submitted",
-      description: `We will process ₦${payoutAmount || "0"} to ${bank}.`,
-    });
+    setSelectedBank("");
+    setAccountNumber("");
+    setAccountName("");
   };
 
   return (
@@ -92,7 +231,7 @@ export default function MerchantPayouts() {
               <Input placeholder="Search payout ID" className="pr-10" />
               <Calendar className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
-            <Button variant="outline" className="gap-2" onClick={() => window.location.reload()}>
+            <Button variant="outline" className="gap-2" onClick={refreshPayouts}>
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
@@ -159,19 +298,54 @@ export default function MerchantPayouts() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bank">Bank account</Label>
+              <Label htmlFor="bank">Bank</Label>
+              <Select value={selectedBank} onValueChange={setSelectedBank}>
+                <SelectTrigger id="bank">
+                  <SelectValue placeholder="Select a bank" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NIGERIAN_BANKS.map((bank) => (
+                    <SelectItem key={bank.code} value={bank.code}>
+                      {bank.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="account-number">Account number</Label>
               <Input
-                id="bank"
-                value={bank}
-                onChange={(event) => setBank(event.target.value)}
+                id="account-number"
+                type="text"
+                maxLength={10}
+                placeholder="0123456789"
+                value={accountNumber}
+                onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, ""))}
               />
             </div>
+            {isResolvingAccount && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Resolving account name...</span>
+              </div>
+            )}
+            {accountName && !isResolvingAccount && (
+              <div className="space-y-2">
+                <Label htmlFor="account-name">Account name</Label>
+                <Input
+                  id="account-name"
+                  value={accountName}
+                  readOnly
+                  className="bg-muted"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={submitPayout} disabled={!payoutAmount}>
+            <Button onClick={submitPayout} disabled={!payoutAmount || !accountName || isResolvingAccount}>
               Submit request
             </Button>
           </DialogFooter>

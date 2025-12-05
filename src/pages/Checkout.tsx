@@ -6,24 +6,34 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { getMerchantUser } from "@/lib/merchant-user";
+import { API_BASE_URL } from "@/lib/api-client";
 
 export default function Checkout() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [activeMethods, setActiveMethods] = useState<string[]>(["card"]);
   const [selectedMethod, setSelectedMethod] = useState<string>("card");
+  const [resolvedAmount, setResolvedAmount] = useState<number | undefined>(undefined);
+  const [resolvedCurrency, setResolvedCurrency] = useState("NGN");
+  const [resolvedDescription, setResolvedDescription] = useState<string | undefined>(undefined);
+  const [resolvedMerchantName, setResolvedMerchantName] = useState<string | undefined>(undefined);
+  const [resolvedMerchantId, setResolvedMerchantId] = useState<string | null>(null);
+  const [resolvedMode, setResolvedMode] = useState<"fixed" | "open">("fixed");
 
   const amountParam = Number(searchParams.get("amount"));
-  const currency = (searchParams.get("currency") || "NGN").toUpperCase();
+  const currency = (searchParams.get("currency") || resolvedCurrency || "NGN").toUpperCase();
   const description =
-    searchParams.get("description") || "Premium Subscription - 1 Month";
-  const merchantName = searchParams.get("merchant") || "TechStore NG";
+    searchParams.get("description") ||
+    resolvedDescription ||
+    "Premium Subscription - 1 Month";
+  const merchantName = searchParams.get("merchant") || resolvedMerchantName || "TechStore NG";
   const reference = searchParams.get("ref");
-  const merchantId = searchParams.get("merchant_id") || getMerchantUser()?.merchantId || null;
-  const mode = (searchParams.get("mode") || "fixed").toLowerCase();
+  const merchantId = searchParams.get("merchant_id") || resolvedMerchantId || getMerchantUser()?.merchantId || null;
+  const mode = (searchParams.get("mode") || resolvedMode || "fixed").toLowerCase();
   const hasValidAmount = Number.isFinite(amountParam) && amountParam > 0;
   const allowCustomAmount = mode === "open" || !hasValidAmount;
-  const initialAmount = hasValidAmount ? amountParam : allowCustomAmount ? undefined : 25000;
+  const initialAmount =
+    hasValidAmount ? amountParam : resolvedAmount !== undefined ? resolvedAmount : allowCustomAmount ? undefined : 25000;
 
   useEffect(() => {
     const stored = localStorage.getItem("paymentOptions");
@@ -39,6 +49,31 @@ export default function Checkout() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    // If ref is present but amount/merchant_id missing, fetch payment link details
+    const fetchPaymentLink = async () => {
+      if (!reference) return;
+      // If we already have all fields, skip
+      if (merchantId && hasValidAmount) return;
+      try {
+        const resp = await fetch(`${API_BASE_URL}/payment-links/${reference}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data) {
+          if (data.amount) setResolvedAmount(Number(data.amount) / 1); // assume amount already in smallest unit
+          if (data.currency) setResolvedCurrency(String(data.currency).toUpperCase());
+          if (data.description) setResolvedDescription(data.description);
+          if (data.merchant_id) setResolvedMerchantId(data.merchant_id);
+          if (data.mode) setResolvedMode(data.mode === "open" ? "open" : "fixed");
+          if (data.business_name) setResolvedMerchantName(data.business_name);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchPaymentLink();
+  }, [reference, merchantId, hasValidAmount]);
 
   if (location.pathname.startsWith("/merchant/checkout") && !reference) {
     return <Navigate to="/merchant/payment-links" replace />;

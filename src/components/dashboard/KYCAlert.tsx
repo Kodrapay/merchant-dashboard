@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-type KYCStatus = "not_started" | "pending" | "approved" | "rejected";
+type KYCStatus = "not_started" | "pending" | "approved" | "rejected" | "completed";
 
 interface KYCAlertProps {
   status: KYCStatus;
@@ -11,7 +11,7 @@ interface KYCAlertProps {
 }
 
 export function KYCAlert({ status, className }: KYCAlertProps) {
-  if (status === "approved") {
+  if (status === "approved" || status === "completed") {
     // Don't show alert if KYC is approved
     return null;
   }

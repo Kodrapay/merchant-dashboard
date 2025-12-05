@@ -44,7 +44,39 @@ export default function MerchantSignup() {
 
       const data = await response.json();
 
-      localStorage.setItem("authToken", `merchant-${data.id}`);
+      // Register auth user tied to merchant
+      const registerResp = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          name: business || "New Merchant",
+          merchant_id: data.id,
+        }),
+      });
+
+      if (!registerResp.ok) {
+        const msg = await registerResp.text();
+        // If email already exists, nudge to login instead of failing silently
+        if (registerResp.status === 400 || registerResp.status === 409) {
+          toast({
+            title: "Account already exists",
+            description: "Please log in with your credentials instead.",
+            variant: "destructive",
+          });
+          navigate("/merchant/login");
+          return;
+        }
+        throw new Error(msg || "Failed to register auth user");
+      }
+      const registerData = await registerResp.json();
+
+      const token = registerData.access_token || registerData.token;
+      if (token) {
+        localStorage.setItem("authToken", token);
+      }
+
       setMerchantUser({
         email,
         businessName: data.business_name || business || "New Business",

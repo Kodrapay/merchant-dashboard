@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { Building2, Upload, FileText, CheckCircle2, AlertCircle, Clock, XCircle } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-client";
-import { getMerchantUser } from "@/lib/merchant-user";
+import { getMerchantUser, setMerchantUser } from "@/lib/merchant-user";
 import { Badge } from "@/components/ui/badge";
 
 type BusinessType = "registered" | "startup" | "small_business";
 type DocumentType = "cac" | "tin" | "memart" | "directors_id" | "utility_bill" | "bank_statement";
+type KYCStatus = "not_started" | "pending" | "completed" | "approved" | "rejected";
 
 interface UploadedDocument {
   type: DocumentType;
@@ -22,10 +23,17 @@ interface UploadedDocument {
   uploadedAt: Date;
 }
 
+interface MerchantInfo {
+  kyc_status: KYCStatus;
+  status: string;
+}
+
 export default function MerchantBusinessKYC() {
   const [businessType, setBusinessType] = useState<BusinessType>("registered");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
+  const [kycStatus, setKycStatus] = useState<KYCStatus>("not_started");
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const user = getMerchantUser();
 
@@ -43,6 +51,34 @@ export default function MerchantBusinessKYC() {
   const [directorBVN, setDirectorBVN] = useState("");
   const [directorPhone, setDirectorPhone] = useState("");
   const [directorEmail, setDirectorEmail] = useState("");
+
+  // Fetch merchant KYC status on mount
+  useEffect(() => {
+    const fetchMerchantStatus = async () => {
+      if (!user?.merchantId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/merchants/${user.merchantId}`);
+        if (response.ok) {
+          const data: MerchantInfo = await response.json();
+          setKycStatus(data.kyc_status);
+          // Update localStorage with the latest KYC status
+          if (user) {
+            setMerchantUser({ ...user, kycStatus: data.kyc_status });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch merchant status:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMerchantStatus();
+  }, [user?.merchantId]);
 
   // Nigerian states
   const nigerianStates = [
@@ -189,6 +225,7 @@ export default function MerchantBusinessKYC() {
         }),
       });
 
+      setKycStatus("pending"); // Update local state
       toast({
         title: "KYC submitted successfully",
         description: "Your business verification is under review. We'll notify you within 24-48 hours.",
@@ -205,6 +242,161 @@ export default function MerchantBusinessKYC() {
     }
   };
 
+  // Render loading state
+  if (isLoading) {
+    return (
+      <DashboardLayout type="merchant" title="Business KYC Verification">
+        <div className="max-w-4xl mx-auto">
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">Loading KYC status...</p>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Render approved/completed state
+  if (kycStatus === "completed" || kycStatus === "approved") {
+    return (
+      <DashboardLayout type="merchant" title="Business KYC Verification">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card className="p-8">
+            <div className="text-center space-y-4">
+              <div className="mx-auto h-16 w-16 rounded-full bg-success/10 text-success flex items-center justify-center">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground mb-2">KYC Verified</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Your business has been successfully verified. You can now access all payment processing features.
+                </p>
+              </div>
+              <Badge variant="default" className="bg-success">Verified</Badge>
+            </div>
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground mb-1">Full Access Enabled</p>
+                  <p className="text-sm text-muted-foreground">
+                    You can now process payments, create payment links, and access all merchant features.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground mb-1">Keep Information Updated</p>
+                  <p className="text-sm text-muted-foreground">
+                    Contact support if you need to update your business information.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Render pending state
+  if (kycStatus === "pending") {
+    return (
+      <DashboardLayout type="merchant" title="Business KYC Verification">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card className="p-8">
+            <div className="text-center space-y-4">
+              <div className="mx-auto h-16 w-16 rounded-full bg-warning/10 text-warning flex items-center justify-center">
+                <Clock className="h-8 w-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground mb-2">Verification In Progress</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Your KYC submission is currently under review by our compliance team. We'll notify you once the verification is complete.
+                </p>
+              </div>
+              <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20">
+                Under Review
+              </Badge>
+            </div>
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="p-4">
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-warning mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground mb-1">Verification Timeline</p>
+                  <p className="text-sm text-muted-foreground">
+                    Most verifications are completed within 24-48 hours. We'll email you once it's done.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground mb-1">Need Help?</p>
+                  <p className="text-sm text-muted-foreground">
+                    Contact compliance@kodrapay.com if you have questions about your verification.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Render rejected state
+  if (kycStatus === "rejected") {
+    return (
+      <DashboardLayout type="merchant" title="Business KYC Verification">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card className="p-8">
+            <div className="text-center space-y-4">
+              <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
+                <XCircle className="h-8 w-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground mb-2">Verification Declined</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Unfortunately, we were unable to verify your business information. Please contact our compliance team for more details.
+                </p>
+              </div>
+              <Badge variant="destructive">Declined</Badge>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground mb-1">What to do next?</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Contact our compliance team at compliance@kodrapay.com to understand why your verification was declined and how to resubmit.
+                </p>
+                <Button variant="outline" size="sm">
+                  Contact Support
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Render form for not_started or default state
   return (
     <DashboardLayout type="merchant" title="Business KYC Verification">
       <div className="max-w-4xl mx-auto space-y-6">

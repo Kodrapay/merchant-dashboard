@@ -294,10 +294,12 @@ export default function MerchantSettings() {
             </div>
           </div>
           <Input value={webhookSecret} readOnly />
-          <Badge variant="secondary">Live</Badge>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={rotateWebhookSecret}>
-            Rotate secret
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">Live</Badge>
+            <Button variant="outline" size="sm" onClick={rotateWebhookSecret}>
+              Rotate secret
+            </Button>
+          </div>
           <Separator />
           <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
             <li>Keep secrets in your backend only.</li>

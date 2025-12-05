@@ -12,9 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getMerchantUser } from "@/lib/merchant-user";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useMerchantProfile } from "@/hooks/useMerchantProfile";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -24,19 +25,55 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, type, title, forceKycOnly = false }: DashboardLayoutProps) {
+  const navigate = useNavigate();
   const [businessName, setBusinessName] = useState<string | null>(null);
+  const normalizeKyc = (status?: string) => {
+    if (!status) return "not_started" as const;
+    if (status === "completed") return "approved" as const;
+    return status as "not_started" | "pending" | "approved" | "rejected";
+  };
   const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "approved" | "rejected">("not_started");
   const { data: notifications, isLoading } = useNotifications();
+  const { data: profile } = useMerchantProfile();
+  const prevKycStatus = useRef<string | null>(null);
 
   useEffect(() => {
-    if (type === "merchant") {
-      const user = getMerchantUser();
-      setBusinessName(user?.businessName ?? null);
-      if (user?.kycStatus) {
-        setKycStatus(user.kycStatus);
+    if (type === "merchant" && profile) {
+      setBusinessName(profile.business_name ?? null);
+      if (profile.kyc_status) {
+        setKycStatus(normalizeKyc(profile.kyc_status));
       }
     }
-  }, [type]);
+  }, [type, profile]);
+
+  // Auto-redirect to dashboard when KYC is approved (without logging out)
+  useEffect(() => {
+    if (type !== "merchant" || !profile) return;
+
+    const current = profile?.kyc_status;
+    const prev = prevKycStatus.current;
+
+    // Detect transition into approved/completed
+    const isApproved = current === "approved" || current === "completed";
+    const wasApproved = prev === "approved" || prev === "completed";
+
+    if (isApproved && !wasApproved && prev !== null) {
+      // KYC just got approved - update localStorage and redirect to dashboard
+      const storedUser = localStorage.getItem("merchantUser");
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          userData.kycStatus = "approved";
+          localStorage.setItem("merchantUser", JSON.stringify(userData));
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      navigate("/merchant/dashboard", { replace: true });
+    }
+
+    prevKycStatus.current = current ?? null;
+  }, [type, profile?.kyc_status, navigate]);
 
   const initials = businessName
     ? businessName

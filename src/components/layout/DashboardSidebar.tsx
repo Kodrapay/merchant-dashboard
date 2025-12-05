@@ -12,7 +12,8 @@ import {
   FileText,
   FileCheck,
 } from "lucide-react";
-import { getMerchantUser } from "@/lib/merchant-user";
+import { useMerchantProfile } from "@/hooks/useMerchantProfile";
+import { logout } from "@/lib/session";
 
 interface SidebarProps {
   type: "admin" | "merchant";
@@ -42,11 +43,12 @@ const merchantLinks = [
 export function DashboardSidebar({ type, forceKycOnly }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const user = getMerchantUser();
+  const { data: profile } = useMerchantProfile();
+  const isKycApproved = (profile?.kyc_status === "approved" || profile?.kyc_status === "completed");
   const links =
     type === "admin"
       ? adminLinks
-      : !forceKycOnly && user?.kycStatus === "approved"
+      : !forceKycOnly && isKycApproved
         ? merchantLinks
         : [{ href: "/merchant/kyc", icon: FileCheck, label: "Business KYC" }];
 
@@ -91,8 +93,8 @@ export function DashboardSidebar({ type, forceKycOnly }: SidebarProps) {
         {/* Footer */}
         <div className="border-t border-sidebar-border p-3">
           <button
-            onClick={() => {
-              localStorage.removeItem("authToken");
+            onClick={async () => {
+              await logout();
               localStorage.removeItem("merchantUser");
               navigate("/");
             }}

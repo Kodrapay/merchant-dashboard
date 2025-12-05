@@ -11,11 +11,12 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { getMerchantUser } from "@/lib/merchant-user";
 import { useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "@/lib/api-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useLocation } from "react-router-dom";
+import { useMerchantProfile } from "@/hooks/useMerchantProfile";
 
 type Transaction = {
   id: string;
@@ -30,24 +31,33 @@ type Transaction = {
 };
 
 export default function MerchantDashboard() {
-  const user = getMerchantUser();
-  const hasDemoData = Boolean(user?.hasDemoData);
-  const kycStatus: "not_started" | "pending" | "approved" | "rejected" =
-    user?.kycStatus ?? "not_started";
+  const { data: profile, isLoading: isLoadingProfile, isError: isErrorProfile } = useMerchantProfile();
+  const hasDemoData = false;
+  const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "approved" | "rejected">(
+    "not_started",
+  );
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (profile?.kyc_status) {
+      setKycStatus(profile.kyc_status as "not_started" | "pending" | "approved" | "rejected");
+    }
+  }, [profile, location.pathname]);
 
   useEffect(() => {
     const fetchTransactions = async () => {
-      if (!user?.merchantId) {
+      if (!profile?.id && !profile?.merchant_id) {
         setTransactions([]);
         return;
       }
       setIsLoading(true);
       try {
-        const resp = await fetch(`${API_BASE_URL}/transactions?merchant_id=${user.merchantId}`);
+        const merchantId = profile?.id || profile?.merchant_id;
+        const resp = await fetch(`${API_BASE_URL}/transactions?merchant_id=${merchantId}`);
         if (!resp.ok) throw new Error("Failed to load transactions");
         const data = await resp.json();
         const list: Transaction[] = (Array.isArray(data) ? data : data.data || []).map((tx: any) => {
@@ -76,7 +86,7 @@ export default function MerchantDashboard() {
     } else {
       setTransactions([]);
     }
-  }, [user?.merchantId, hasDemoData]);
+  }, [profile?.id, profile?.merchant_id, hasDemoData]);
 
   const revenue = useMemo(() => {
     const total = transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
@@ -86,73 +96,103 @@ export default function MerchantDashboard() {
   const formatCurrency = (amount: number, currency: string) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency }).format(amount || 0);
 
+  const monthlyRevenueData = useMemo(() => {
+    const revenueByMonth: { [key: string]: number } = {};
+    transactions.forEach(tx => {
+      const month = new Date(tx.date).toLocaleString('en-US', { month: 'short' });
+      revenueByMonth[month] = (revenueByMonth[month] || 0) + tx.amount;
+    });
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months.map(month => ({
+      name: month,
+      revenue: revenueByMonth[month] || 0
+    }));
+  }, [transactions]);
+
   return (
     <DashboardLayout type="merchant" title="Dashboard">
-      {/* KYC Status Alert */}
       <KYCAlert status={kycStatus} className="mb-6" />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard
-          title="Total Revenue"
-          value={hasDemoData ? "₦0" : formatCurrency(revenue, "NGN")}
-          change={transactions.length ? `${transactions.length} transactions` : "No volume yet"}
-          changeType={transactions.length ? "positive" : "neutral"}
-          icon={DollarSign}
-          iconColor="bg-success/10 text-success"
-          delay={0}
-        />
-        <StatsCard
-          title="Available Balance"
-          value={hasDemoData ? "₦0" : "₦0"}
-          change={hasDemoData ? "No payouts yet" : "No payouts yet"}
-          changeType="neutral"
-          icon={Wallet}
-          iconColor="bg-primary/10 text-primary"
-          delay={100}
-        />
-        <StatsCard
-          title="Transactions"
-          value={String(transactions.length)}
-          change={transactions.length ? "Recent activity" : "No activity"}
-          changeType={transactions.length ? "positive" : "neutral"}
-          icon={CreditCard}
-          iconColor="bg-warning/10 text-warning"
-          delay={200}
-        />
-        <StatsCard
-          title="Success Rate"
-          value={transactions.length ? "—" : "N/A"}
-          change={transactions.length ? "Based on live data" : "Awaiting transactions"}
-          changeType={transactions.length ? "neutral" : "neutral"}
-          icon={TrendingUp}
-          iconColor="bg-accent text-accent-foreground"
-          delay={300}
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6 mb-8">
-        {/* Chart */}
-        <div className="lg:col-span-2">
-          <RevenueChart title="Your Revenue" />
+      {isLoadingProfile && (
+        <div className="flex justify-center items-center h-48">
+          <p className="text-lg text-muted-foreground">Loading dashboard...</p>
         </div>
-      </div>
+      )}
 
-      {/* Recent Transactions */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Recent Transactions</h2>
-          <Button variant="outline" size="sm">
-            View All
-            <ArrowUpRight className="h-4 w-4" />
-          </Button>
+      {isErrorProfile && (
+        <div className="flex flex-col justify-center items-center h-48 text-destructive">
+          <p className="text-lg">Error loading profile data.</p>
+          <p className="text-sm">Please try again later.</p>
         </div>
-        <TransactionTable
-          transactions={transactions}
-          onSelect={(tx) => setSelectedTx(tx)}
-          isLoading={isLoading}
-        />
-      </div>
+      )}
+
+      {(!isLoadingProfile && !isErrorProfile && profile) && (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatsCard
+              title="Total Revenue"
+              value={hasDemoData ? "₦0" : formatCurrency(revenue, "NGN")}
+              change={transactions.length ? `${transactions.length} transactions` : "No volume yet"}
+              changeType={transactions.length ? "positive" : "neutral"}
+              icon={DollarSign}
+              iconColor="bg-success/10 text-success"
+              delay={0}
+            />
+            <StatsCard
+              title="Available Balance"
+              value={hasDemoData ? "₦0" : "₦0"}
+              change={hasDemoData ? "No payouts yet" : "No payouts yet"}
+              changeType="neutral"
+              icon={Wallet}
+              iconColor="bg-primary/10 text-primary"
+              delay={100}
+            />
+            <StatsCard
+              title="Transactions"
+              value={String(transactions.length)}
+              change={transactions.length ? "Recent activity" : "No activity"}
+              changeType={transactions.length ? "positive" : "neutral"}
+              icon={CreditCard}
+              iconColor="bg-warning/10 text-warning"
+              delay={200}
+            />
+            <StatsCard
+              title="Success Rate"
+              value={transactions.length ? "—" : "N/A"}
+              change={transactions.length ? "Based on live data" : "Awaiting transactions"}
+              changeType={transactions.length ? "neutral" : "neutral"}
+              icon={TrendingUp}
+              iconColor="bg-accent text-accent-foreground"
+              delay={300}
+            />
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6 mb-8">
+            {/* Chart */}
+            <div className="lg:col-span-2">
+              <RevenueChart title="Your Revenue" data={monthlyRevenueData} />
+            </div>
+          </div>
+
+          {/* Recent Transactions */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-foreground">Recent Transactions</h2>
+              <Button variant="outline" size="sm">
+                View All
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <TransactionTable
+              transactions={transactions}
+              onSelect={(tx) => setSelectedTx(tx)}
+              isLoading={isLoading}
+            />
+          </div>
+        </>
+      )}
 
       <Dialog open={Boolean(selectedTx)} onOpenChange={() => setSelectedTx(null)}>
         <DialogContent>
