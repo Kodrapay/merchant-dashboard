@@ -61,7 +61,7 @@ export default function Checkout() {
         if (!resp.ok) return;
         const data = await resp.json();
         if (data) {
-          if (data.amount) setResolvedAmount(Number(data.amount) / 1); // assume amount already in smallest unit
+          if (data.amount) setResolvedAmount(Number(data.amount) / 100); // Convert kobo to naira
           if (data.currency) setResolvedCurrency(String(data.currency).toUpperCase());
           if (data.description) setResolvedDescription(data.description);
           if (data.merchant_id) setResolvedMerchantId(data.merchant_id);

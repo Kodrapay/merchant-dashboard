@@ -26,38 +26,65 @@ type Transaction = {
 export default function MerchantTransactions() {
   const user = getMerchantUser();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   useEffect(() => {
+    let isFirstLoad = true;
+
     const load = async () => {
       if (!user?.merchantId) {
+        console.log("No merchant ID found");
         setTransactions([]);
+        setIsLoading(false);
         return;
       }
-      setIsLoading(true);
+
+      // Only show loading spinner on first load
+      if (isFirstLoad) {
+        setIsLoading(true);
+      }
+
       try {
+        console.log(`Fetching transactions for merchant: ${user.merchantId}`);
         const resp = await fetch(`${API_BASE_URL}/transactions?merchant_id=${user.merchantId}`);
         const data = await resp.json();
-        const list: Transaction[] = (Array.isArray(data) ? data : data.data || []).map((tx: any) => ({
+        console.log("API Response:", data);
+
+        const source = Array.isArray(data)
+          ? data
+          : data.transactions || data.Transactions || data.data || [];
+
+        console.log(`Found ${source.length} transactions`);
+
+        const list: Transaction[] = source.map((tx: any) => ({
           id: tx.id,
           reference: tx.reference || tx.id,
           customer: tx.customer_name || tx.customer || "Customer",
           email: tx.customer_email || "",
           amount: (tx.amount || 0) / 100,
           currency: tx.currency || "NGN",
-          status: (tx.status || "pending") as Transaction["status"],
+          status: (tx.status === "success" ? "successful" : tx.status || "pending") as Transaction["status"],
           date: tx.created_at || new Date().toISOString(),
           description: tx.description,
         }));
         setTransactions(list);
-      } catch {
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
         setTransactions([]);
       } finally {
         setIsLoading(false);
+        isFirstLoad = false;
       }
     };
+
+    // Load immediately
     load();
+
+    // Auto-refresh every 5 seconds to show new transactions
+    const interval = setInterval(load, 5000);
+
+    return () => clearInterval(interval);
   }, [user?.merchantId]);
 
   return (

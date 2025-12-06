@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Copy, ExternalLink, Link2, CircleDot } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, Link2, CircleDot, Trash2 } from "lucide-react";
 import { getMerchantUser } from "@/lib/merchant-user";
 import { apiClient, fetchFromAPI } from "@/lib/api-client";
 
@@ -82,9 +82,10 @@ export default function MerchantPaymentLinks() {
     if (!user?.merchantId) {
       toast({
         title: "Error",
-        description: "Merchant ID not found. Please log in again.",
+        description: `Merchant ID not found. Please log in again. User: ${JSON.stringify(user)}`,
         variant: "destructive",
       });
+      console.error("User object:", user);
       return;
     }
 
@@ -129,13 +130,21 @@ export default function MerchantPaymentLinks() {
         title: "Payment link created",
         description: "Copy and share this link with your customer.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Failed to create payment link",
-        description: "Please try again later.",
+        description: error?.message || "Please try again later.",
         variant: "destructive",
       });
       console.error("Error creating payment link:", error);
+      console.error("Request body:", {
+        merchant_id: user.merchantId,
+        mode: linkType,
+        amount: safeAmount,
+        currency: safeCurrency,
+        description: trimmedDescription,
+        reference: `pl_${Date.now()}`,
+      });
     }
   };
 
@@ -147,6 +156,25 @@ export default function MerchantPaymentLinks() {
       toast({
         title: "Unable to copy automatically",
         description: "Please copy the link manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!merchantId) {
+      toast({ title: "Not signed in", description: "Please log in again.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await fetchFromAPI(apiClient.paymentLinks.delete(id, merchantId), { method: "DELETE" });
+      setLinks((current) => current.filter((l) => l.id !== id));
+      toast({ title: "Payment link deleted", description: "The link is no longer active." });
+    } catch (error: any) {
+      toast({
+        title: "Failed to delete payment link",
+        description: error?.message || "Please try again later.",
         variant: "destructive",
       });
     }
@@ -295,6 +323,14 @@ export default function MerchantPaymentLinks() {
                       <ExternalLink className="h-4 w-4 mr-1" />
                       Open checkout
                     </a>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(link.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
                   </Button>
                 </div>
               </div>

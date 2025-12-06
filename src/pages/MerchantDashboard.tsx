@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "react-router-dom";
 import { useMerchantProfile } from "@/hooks/useMerchantProfile";
+import { apiClient } from "@/lib/api-client";
 
 type Transaction = {
   id: string;
@@ -40,6 +41,7 @@ export default function MerchantDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [payouts, setPayouts] = useState<{ amount: number }[]>([]);
   const location = useLocation();
 
   useEffect(() => {
@@ -60,7 +62,10 @@ export default function MerchantDashboard() {
         const resp = await fetch(`${API_BASE_URL}/transactions?merchant_id=${merchantId}`);
         if (!resp.ok) throw new Error("Failed to load transactions");
         const data = await resp.json();
-        const list: Transaction[] = (Array.isArray(data) ? data : data.data || []).map((tx: any) => {
+        const listSource = Array.isArray(data)
+          ? data
+          : data.transactions || data.Transactions || data.data || [];
+        const list: Transaction[] = listSource.map((tx: any) => {
           const rawAmount = tx.amount || 0;
           return {
             id: tx.id,
@@ -69,7 +74,7 @@ export default function MerchantDashboard() {
             email: tx.customer_email || "",
             amount: rawAmount / 100,
             currency: tx.currency || "NGN",
-            status: (tx.status || "pending") as Transaction["status"],
+            status: (tx.status === "success" ? "successful" : tx.status || "pending") as Transaction["status"],
             date: tx.created_at || new Date().toISOString(),
             description: tx.description,
           };
@@ -88,9 +93,39 @@ export default function MerchantDashboard() {
     }
   }, [profile?.id, profile?.merchant_id, hasDemoData]);
 
+  useEffect(() => {
+    const fetchPayouts = async () => {
+      const merchantId = profile?.id || profile?.merchant_id;
+      if (!merchantId) {
+        setPayouts([]);
+        return;
+      }
+      try {
+        const resp = await fetch(`${apiClient.payouts.list}?merchant_id=${merchantId}`);
+        if (!resp.ok) throw new Error("Failed to load payouts");
+        const data = await resp.json();
+        const list = Array.isArray(data) ? data : data.payouts || data.data || [];
+        setPayouts(list.map((p: any) => ({ amount: (p.amount || 0) / 100 })));
+      } catch {
+        setPayouts([]);
+      }
+    };
+    fetchPayouts();
+  }, [profile?.id, profile?.merchant_id]);
+
   const revenue = useMemo(() => {
     const total = transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
     return total;
+  }, [transactions]);
+
+  const totalPayouts = useMemo(() => payouts.reduce((sum, p) => sum + (p.amount || 0), 0), [payouts]);
+  const availableBalance = Math.max(revenue - totalPayouts, 0);
+  const pendingSettlement = Math.max(revenue - totalPayouts, 0);
+
+  const successRate = useMemo(() => {
+    if (!transactions.length) return null;
+    const successCount = transactions.filter((t) => t.status === "successful").length;
+    return (successCount / transactions.length) * 100;
   }, [transactions]);
 
   const formatCurrency = (amount: number, currency: string) =>
@@ -133,7 +168,7 @@ export default function MerchantDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
               title="Total Revenue"
-              value={hasDemoData ? "₦0" : formatCurrency(revenue, "NGN")}
+              value={formatCurrency(revenue, "NGN")}
               change={transactions.length ? `${transactions.length} transactions` : "No volume yet"}
               changeType={transactions.length ? "positive" : "neutral"}
               icon={DollarSign}
@@ -142,12 +177,21 @@ export default function MerchantDashboard() {
             />
             <StatsCard
               title="Available Balance"
-              value={hasDemoData ? "₦0" : "₦0"}
-              change={hasDemoData ? "No payouts yet" : "No payouts yet"}
+              value={formatCurrency(availableBalance, "NGN")}
+              change={hasDemoData ? "No payouts yet" : "After payouts"}
               changeType="neutral"
               icon={Wallet}
               iconColor="bg-primary/10 text-primary"
               delay={100}
+            />
+            <StatsCard
+              title="Pending Settlement"
+              value={formatCurrency(pendingSettlement, "NGN")}
+              change={transactions.length ? "Awaiting settlement run" : "No volume yet"}
+              changeType={transactions.length ? "neutral" : "neutral"}
+              icon={DollarSign}
+              iconColor="bg-warning/10 text-warning"
+              delay={150}
             />
             <StatsCard
               title="Transactions"
@@ -158,15 +202,15 @@ export default function MerchantDashboard() {
               iconColor="bg-warning/10 text-warning"
               delay={200}
             />
-            <StatsCard
-              title="Success Rate"
-              value={transactions.length ? "—" : "N/A"}
-              change={transactions.length ? "Based on live data" : "Awaiting transactions"}
-              changeType={transactions.length ? "neutral" : "neutral"}
-              icon={TrendingUp}
-              iconColor="bg-accent text-accent-foreground"
-              delay={300}
-            />
+        <StatsCard
+          title="Success Rate"
+          value={successRate !== null ? `${successRate.toFixed(1)}%` : "N/A"}
+          change={transactions.length ? "Based on live data" : "Awaiting transactions"}
+          changeType={transactions.length ? "neutral" : "neutral"}
+          icon={TrendingUp}
+          iconColor="bg-accent text-accent-foreground"
+          delay={300}
+        />
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">

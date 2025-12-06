@@ -36,6 +36,7 @@ const merchantLinks = [
     label: "Transactions",
   },
   { href: "/merchant/payment-links", icon: FileText, label: "Payment Links" },
+  { href: "/merchant/disputes", icon: FileCheck, label: "Disputes" },
   { href: "/merchant/payouts", icon: Wallet, label: "Payouts" },
   { href: "/merchant/settings", icon: Settings, label: "Settings" },
 ];

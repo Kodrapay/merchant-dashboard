@@ -15,6 +15,7 @@ import MerchantSettings from "./pages/MerchantSettings";
 import Checkout from "./pages/Checkout";
 import MerchantPaymentLinks from "./pages/MerchantPaymentLinks";
 import MerchantKyc from "./pages/MerchantKyc";
+import MerchantDisputes from "./pages/MerchantDisputes";
 import { validateSession, getSessionCookie } from "./lib/session";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/merchant/checkout" element={<Checkout />} />
           <Route path="/merchant/login" element={<MerchantLogin />} />
           <Route path="/merchant/signup" element={<MerchantSignup />} />
           <Route
@@ -116,6 +119,14 @@ const App = () => (
             element={
               <RequireMerchantAuth requireKyc>
                 <MerchantPayouts />
+              </RequireMerchantAuth>
+            }
+          />
+          <Route
+            path="/merchant/disputes"
+            element={
+              <RequireMerchantAuth requireKyc>
+                <MerchantDisputes />
               </RequireMerchantAuth>
             }
           />

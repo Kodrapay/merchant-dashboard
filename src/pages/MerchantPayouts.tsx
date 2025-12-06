@@ -63,11 +63,28 @@ export default function MerchantPayouts() {
   const [isResolvingAccount, setIsResolvingAccount] = useState(false);
   const [payouts, setPayouts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [pendingBalance, setPendingBalance] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
     refreshPayouts();
+    fetchBalance();
   }, [user?.merchantId]);
+
+  const fetchBalance = async () => {
+    if (!user?.merchantId) return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/merchants/${user.merchantId}/balance?currency=NGN`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setAvailableBalance((data.available_balance || 0) / 100);
+        setPendingBalance((data.pending_balance || 0) / 100);
+      }
+    } catch (error) {
+      console.error("Failed to fetch balance:", error);
+    }
+  };
 
   const refreshPayouts = async () => {
     if (!user?.merchantId) {
@@ -209,7 +226,7 @@ export default function MerchantPayouts() {
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Available balance</p>
           <p className="text-2xl font-semibold text-foreground mt-1">
-            ₦{payouts.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}
+            ₦{availableBalance.toLocaleString()}
           </p>
         </Card>
         <Card className="p-4">
@@ -231,7 +248,7 @@ export default function MerchantPayouts() {
               <Input placeholder="Search payout ID" className="pr-10" />
               <Calendar className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
-            <Button variant="outline" className="gap-2" onClick={refreshPayouts}>
+            <Button variant="outline" className="gap-2" onClick={() => { refreshPayouts(); fetchBalance(); }}>
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>

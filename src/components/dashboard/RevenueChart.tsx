@@ -8,26 +8,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const data = [
-  { name: "Jan", revenue: 4000000 },
-  { name: "Feb", revenue: 3000000 },
-  { name: "Mar", revenue: 5000000 },
-  { name: "Apr", revenue: 4500000 },
-  { name: "May", revenue: 6000000 },
-  { name: "Jun", revenue: 5500000 },
-  { name: "Jul", revenue: 7000000 },
-  { name: "Aug", revenue: 8500000 },
-  { name: "Sep", revenue: 7500000 },
-  { name: "Oct", revenue: 9000000 },
-  { name: "Nov", revenue: 8000000 },
-  { name: "Dec", revenue: 10500000 },
-];
-
 interface RevenueChartProps {
   title?: string;
+  data: { name: string; revenue: number; }[];
 }
 
-export function RevenueChart({ title = "Revenue Overview" }: RevenueChartProps) {
+export function RevenueChart({ title = "Revenue Overview", data }: RevenueChartProps) {
   const formatValue = (value: number) => {
     if (value >= 1000000) {
       return `₦${(value / 1000000).toFixed(1)}M`;

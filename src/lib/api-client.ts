@@ -27,6 +27,8 @@ export const apiClient = {
     create: `${API_BASE_URL}/payment-links`,
     list: (merchantId: string) => `${API_BASE_URL}/merchants/${merchantId}/payment-links`,
     get: (id: string) => `${API_BASE_URL}/payment-links/${id}`,
+    delete: (id: string, merchantId?: string) =>
+      `${API_BASE_URL}/payment-links/${id}${merchantId ? `?merchant_id=${merchantId}` : ""}`,
   },
 
   // Transaction Service (Port 7004)
@@ -83,6 +85,14 @@ export const apiClient = {
     list: `${API_BASE_URL}/webhooks`,
     get: (id: string) => `${API_BASE_URL}/webhooks/${id}`,
     logs: `${API_BASE_URL}/webhooks/logs`,
+  },
+
+  // Dispute Service (Port 7013)
+  disputes: {
+    list: `${API_BASE_URL}/disputes`,
+    create: `${API_BASE_URL}/disputes`,
+    get: (id: string) => `${API_BASE_URL}/disputes/${id}`,
+    evidence: (id: string) => `${API_BASE_URL}/disputes/${id}/evidence`,
   },
 };
 
