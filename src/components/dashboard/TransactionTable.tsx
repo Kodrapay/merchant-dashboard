@@ -74,8 +74,7 @@ export function TransactionTable({ transactions, showMerchant = false, onSelect,
           {transactions.map((transaction, index) => (
             <TableRow
               key={transaction.id}
-              className="animate-fade-in cursor-pointer hover:bg-muted/30"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="cursor-pointer hover:bg-muted/30"
               onClick={() => onSelect?.(transaction)}
             >
               <TableCell className="font-mono text-sm">{transaction.reference}</TableCell>

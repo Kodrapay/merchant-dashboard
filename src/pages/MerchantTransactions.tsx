@@ -68,6 +68,7 @@ export default function MerchantTransactions() {
           date: tx.created_at || new Date().toISOString(),
           description: tx.description,
         }));
+        console.log("Mapped transactions list:", list); // Add this line
         setTransactions(list);
       } catch (error) {
         console.error("Error fetching transactions:", error);

@@ -23,8 +23,20 @@ import {
 const statusTone = {
   processing: "text-warning bg-warning/10",
   sent: "text-success bg-success/10",
+  completed: "text-success bg-success/10",
+  processed: "text-success bg-success/10",
+  paid: "text-success bg-success/10",
   scheduled: "text-muted-foreground bg-muted/60",
   pending: "text-muted-foreground bg-muted/60",
+  failed: "text-destructive bg-destructive/10",
+};
+
+const normalizeStatus = (status?: string) => {
+  const value = (status || "").toLowerCase();
+  if (["processed", "completed", "sent", "paid"].includes(value)) return "sent";
+  if (["processing"].includes(value)) return "processing";
+  if (["failed", "error"].includes(value)) return "failed";
+  return "pending";
 };
 
 // Nigerian banks list
@@ -70,7 +82,16 @@ export default function MerchantPayouts() {
   useEffect(() => {
     refreshPayouts();
     fetchBalance();
-  }, [user?.merchantId]);
+
+    const interval = setInterval(() => {
+      // Only poll if there are pending or processing payouts
+      if (payouts.some(p => p.status === 'pending' || p.status === 'processing')) {
+        refreshPayouts();
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval); // Cleanup interval on component unmount
+  }, [user?.merchantId, payouts]);
 
   const fetchBalance = async () => {
     if (!user?.merchantId) return;
@@ -98,7 +119,7 @@ export default function MerchantPayouts() {
       const list = (Array.isArray(data) ? data : data.data || data.payouts || []).map((p: any) => ({
         id: p.id,
         amount: (p.amount || 0) / 100,
-        status: p.status || "pending",
+        status: normalizeStatus(p.status),
         date: p.created_at || "",
         bank: p.bank || p.recipient_bank || "",
       }));

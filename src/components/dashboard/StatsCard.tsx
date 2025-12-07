@@ -9,6 +9,7 @@ interface StatsCardProps {
   icon: LucideIcon;
   iconColor?: string;
   delay?: number;
+  className?: string;
 }
 
 export function StatsCard({
@@ -19,16 +20,17 @@ export function StatsCard({
   icon: Icon,
   iconColor = "bg-primary/10 text-primary",
   delay = 0,
+  className,
 }: StatsCardProps) {
   return (
     <div
-      className="rounded-xl border border-border bg-card p-6 shadow-card animate-slide-up"
+      className={cn("rounded-xl border border-border bg-card p-6 shadow-card animate-slide-up", className)}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
+          <p className="mt-2 text-2xl md:text-3xl font-bold text-foreground break-words">{value}</p>
           {change && (
             <p
               className={cn(
