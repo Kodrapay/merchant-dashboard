@@ -80,18 +80,17 @@ export default function MerchantPayouts() {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!user?.merchantId) return;
+
     refreshPayouts();
     fetchBalance();
 
     const interval = setInterval(() => {
-      // Only poll if there are pending or processing payouts
-      if (payouts.some(p => p.status === 'pending' || p.status === 'processing')) {
-        refreshPayouts();
-      }
+      refreshPayouts();
     }, 5000); // Poll every 5 seconds
 
     return () => clearInterval(interval); // Cleanup interval on component unmount
-  }, [user?.merchantId, payouts]);
+  }, [user?.merchantId]);
 
   const fetchBalance = async () => {
     if (!user?.merchantId) return;
