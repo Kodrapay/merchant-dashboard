@@ -118,10 +118,11 @@ export default function MerchantDashboard() {
     fetchPayouts();
   }, [profile?.id, profile?.merchant_id]);
 
-  const revenue = useMemo(() => {
-    const total = transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
-    return total;
+  const revenueKobo = useMemo(() => {
+    return transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
   }, [transactions]);
+
+  const revenue = revenueKobo / 100;
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -137,7 +138,7 @@ export default function MerchantDashboard() {
         setBalance({
           available: (data.available_balance || 0) / 100,
           pending: (data.pending_balance || 0) / 100,
-          total: (data.total_volume || revenue * 100) / 100,
+          total: ((data.total_volume ?? revenueKobo) as number) / 100,
         });
       } catch (error) {
         console.error("Failed to fetch balance:", error);
@@ -218,7 +219,13 @@ export default function MerchantDashboard() {
             <StatsCard
               title="Pending Settlement"
               value={formatCurrency(pendingSettlement, "NGN")}
-              change={transactions.length ? "Awaiting settlement run" : "No volume yet"}
+              change={
+                pendingSettlement > 0
+                  ? "Awaiting settlement run"
+                  : transactions.length
+                    ? "All settled"
+                    : "No volume yet"
+              }
               changeType="neutral"
               icon={DollarSign}
               iconColor="bg-warning/10 text-warning"
