@@ -98,8 +98,8 @@ export default function MerchantPayouts() {
       const resp = await fetch(`${API_BASE_URL}/merchants/${user.merchantId}/balance?currency=NGN`);
       if (resp.ok) {
         const data = await resp.json();
-        setAvailableBalance((data.available_balance || 0) / 100);
-        setPendingBalance((data.pending_balance || 0) / 100);
+        setAvailableBalance(data.available_balance || 0);
+        setPendingBalance(data.pending_balance || 0);
       }
     } catch (error) {
       console.error("Failed to fetch balance:", error);
@@ -117,7 +117,7 @@ export default function MerchantPayouts() {
       const data = await resp.json();
       const list = (Array.isArray(data) ? data : data.data || data.payouts || []).map((p: any) => ({
         id: p.id,
-        amount: (p.amount || 0) / 100,
+        amount: p.amount || 0,
         status: normalizeStatus(p.status),
         date: p.created_at || "",
         bank: p.bank || p.recipient_bank || "",
@@ -176,8 +176,8 @@ export default function MerchantPayouts() {
       return;
     }
 
-    const amountKobo = Math.max(0, Math.round(Number(payoutAmount || "0") * 100));
-    if (!amountKobo) {
+    const amountNaira = Number(payoutAmount || "0");
+    if (!amountNaira || amountNaira <= 0) {
       toast({ title: "Enter an amount", description: "Amount must be greater than zero.", variant: "destructive" });
       return;
     }
@@ -198,7 +198,7 @@ export default function MerchantPayouts() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         merchant_id: user.merchantId,
-        amount: amountKobo,
+        amount: amountNaira, // Send Naira directly
         currency: "NGN",
         recipient_name: accountName,
         recipient_account: accountNumber,
@@ -213,7 +213,7 @@ export default function MerchantPayouts() {
         setPayouts((prev) => [
           {
             id: data.id || `payout_${Date.now()}`,
-            amount: amountKobo / 100,
+            amount: amountNaira, // Use Naira directly
             status: data.status || "processing",
             date: data.created_at || format(new Date(), "yyyy-MM-dd HH:mm"),
             bank: `${bankName} - ${accountNumber}`,
@@ -244,9 +244,11 @@ export default function MerchantPayouts() {
     <DashboardLayout type="merchant" title="Payouts">
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Available balance</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">
-            ₦{availableBalance.toLocaleString()}
+          <p className="text-xl font-semibold text-foreground mt-1">
+            {new Intl.NumberFormat("en-NG", {
+              style: "currency",
+              currency: "NGN",
+            }).format(availableBalance)}
           </p>
         </Card>
         <Card className="p-4">
@@ -300,7 +302,12 @@ export default function MerchantPayouts() {
             <div key={payout.id} className="flex items-center justify-between py-4">
               <div>
                 <p className="text-sm text-muted-foreground">{payout.id}</p>
-                <p className="font-semibold text-foreground">₦{payout.amount.toLocaleString()}</p>
+                <p className="font-semibold text-sm text-foreground">
+                  {new Intl.NumberFormat("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                  }).format(payout.amount)}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">{payout.bank}</p>
               </div>
               <div className="text-right">

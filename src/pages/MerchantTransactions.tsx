@@ -62,7 +62,7 @@ export default function MerchantTransactions() {
           reference: tx.reference || tx.id,
           customer: tx.customer_name || tx.customer || "Customer",
           email: tx.customer_email || "",
-          amount: (tx.amount || 0) / 100,
+          amount: tx.amount || 0,
           currency: tx.currency || "NGN",
           status: (tx.status === "success" ? "successful" : tx.status || "pending") as Transaction["status"],
           date: tx.created_at || new Date().toISOString(),
@@ -94,7 +94,10 @@ export default function MerchantTransactions() {
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Processed</p>
           <p className="text-2xl font-semibold text-foreground mt-1">
-            ₦{transactions.reduce((s, t) => s + (t.amount || 0), 0).toLocaleString()}
+            {new Intl.NumberFormat("en-NG", {
+              style: "currency",
+              currency: "NGN",
+            }).format(transactions.reduce((s, t) => s + (t.amount || 0), 0))}
           </p>
         </Card>
         <Card className="p-4">
@@ -181,7 +184,10 @@ export default function MerchantTransactions() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Amount</span>
                 <span className="font-semibold">
-                  ₦{(selectedTx.amount).toLocaleString()}
+                  {new Intl.NumberFormat("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                  }).format(selectedTx.amount)}
                 </span>
               </div>
               <div className="flex items-center justify-between">

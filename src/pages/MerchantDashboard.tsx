@@ -26,7 +26,7 @@ type Transaction = {
   email: string;
   amount: number;
   currency: string;
-  status: "successful" | "pending" | "failed";
+  status: "successful" | "pending" | "failed" | "payout";
   date: string;
   description?: string;
 };
@@ -72,14 +72,17 @@ export default function MerchantDashboard() {
           : data.transactions || data.Transactions || data.data || [];
         const list: Transaction[] = listSource.map((tx: any) => {
           const rawAmount = tx.amount || 0;
+          const status = (tx.status || "").toLowerCase();
+          const normalizedStatus =
+            status === "success" ? "successful" : status === "payout" ? "payout" : status || "pending";
           return {
             id: tx.id,
             reference: tx.reference || tx.id,
             customer: tx.customer_name || tx.customer || "Customer",
             email: tx.customer_email || "",
-            amount: rawAmount / 100,
+            amount: rawAmount,
             currency: tx.currency || "NGN",
-            status: (tx.status === "success" ? "successful" : tx.status || "pending") as Transaction["status"],
+            status: normalizedStatus as Transaction["status"],
             date: tx.created_at || new Date().toISOString(),
             description: tx.description,
           };
@@ -110,7 +113,7 @@ export default function MerchantDashboard() {
         if (!resp.ok) throw new Error("Failed to load payouts");
         const data = await resp.json();
         const list = Array.isArray(data) ? data : data.payouts || data.data || [];
-        setPayouts(list.map((p: any) => ({ amount: (p.amount || 0) / 100 })));
+        setPayouts(list.map((p: any) => ({ amount: p.amount || 0 })));
       } catch {
         setPayouts([]);
       }
@@ -122,7 +125,7 @@ export default function MerchantDashboard() {
     return transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
   }, [transactions]);
 
-  const revenue = revenueKobo / 100;
+  const revenue = revenueKobo;
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -136,9 +139,9 @@ export default function MerchantDashboard() {
         if (!resp.ok) throw new Error("Failed to load balance");
         const data = await resp.json();
         setBalance({
-          available: (data.available_balance || 0) / 100,
-          pending: (data.pending_balance || 0) / 100,
-          total: ((data.total_volume ?? revenueKobo) as number) / 100,
+          available: data.available_balance || 0,
+          pending: data.pending_balance || 0,
+          total: (data.total_volume ?? revenueKobo) as number,
         });
       } catch (error) {
         console.error("Failed to fetch balance:", error);
