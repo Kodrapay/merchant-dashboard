@@ -45,7 +45,7 @@ export default function MerchantCheckout() {
   }, []);
 
   const formatAmount = (amt: string, curr: string) => {
-    const num = Number(amt) / 100;
+    const num = Number(amt);
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: curr || "NGN",
@@ -183,18 +183,18 @@ export default function MerchantCheckout() {
 
           {mode === "open" && (
             <div className="space-y-2">
-              <Label htmlFor="customerAmount">Amount (in kobo)</Label>
+              <Label htmlFor="customerAmount">Amount (NGN)</Label>
               <Input
                 id="customerAmount"
                 type="number"
-                min="100"
+                min="0.01"
                 value={customerAmount}
                 onChange={(e) => setCustomerAmount(e.target.value)}
                 placeholder="25000"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Enter amount in kobo (100 kobo = ₦1)
+                Enter amount in NGN.
               </p>
             </div>
           )}
