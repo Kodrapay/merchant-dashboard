@@ -17,7 +17,7 @@ export default function Checkout() {
   const [resolvedCurrency, setResolvedCurrency] = useState("NGN");
   const [resolvedDescription, setResolvedDescription] = useState<string | undefined>(undefined);
   const [resolvedMerchantName, setResolvedMerchantName] = useState<string | undefined>(undefined);
-  const [resolvedMerchantId, setResolvedMerchantId] = useState<string | null>(null);
+  const [resolvedMerchantId, setResolvedMerchantId] = useState<number | null>(null);
   const [resolvedMode, setResolvedMode] = useState<"fixed" | "open">("fixed");
 
   const amountParam = Number(searchParams.get("amount"));
@@ -27,8 +27,9 @@ export default function Checkout() {
     resolvedDescription ||
     "Premium Subscription - 1 Month";
   const merchantName = searchParams.get("merchant") || resolvedMerchantName || "TechStore NG";
-  const reference = searchParams.get("ref");
-  const merchantId = searchParams.get("merchant_id") || resolvedMerchantId || getMerchantUser()?.merchantId || null;
+  const reference = searchParams.get("ref") ? Number(searchParams.get("ref")) : null; // Convert to number
+  const merchantId = searchParams.get("merchant_id") ? Number(searchParams.get("merchant_id")) : (resolvedMerchantId !== null ? resolvedMerchantId : (getMerchantUser()?.merchantId || null)); // Convert to number, handle existing resolvedMerchantId and getMerchantUser().merchantId
+
   const mode = (searchParams.get("mode") || resolvedMode || "fixed").toLowerCase();
   const hasValidAmount = Number.isFinite(amountParam) && amountParam > 0;
   const allowCustomAmount = mode === "open" || !hasValidAmount;
@@ -64,7 +65,12 @@ export default function Checkout() {
           if (data.amount) setResolvedAmount(Number(data.amount) / 100); // Convert kobo to naira
           if (data.currency) setResolvedCurrency(String(data.currency).toUpperCase());
           if (data.description) setResolvedDescription(data.description);
-          if (data.merchant_id) setResolvedMerchantId(data.merchant_id);
+          if (data.merchant_id) {
+            const mid = Number(data.merchant_id);
+            if (Number.isFinite(mid)) {
+              setResolvedMerchantId(mid);
+            }
+          }
           if (data.mode) setResolvedMode(data.mode === "open" ? "open" : "fixed");
           if (data.business_name) setResolvedMerchantName(data.business_name);
         }

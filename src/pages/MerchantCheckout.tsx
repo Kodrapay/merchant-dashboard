@@ -75,7 +75,10 @@ export default function MerchantCheckout() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          payment_link_id: paymentLinkId,
+          payment_link_id: Number(paymentLinkId) || 0,
+          merchant_id: Number(merchantId) || 0,
+          amount: finalAmount,
+          currency,
           customer_email: customerEmail,
           customer_name: customerName,
           payment_method: "card",

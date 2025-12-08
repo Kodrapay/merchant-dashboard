@@ -26,7 +26,7 @@ type Transaction = {
   email: string;
   amount: number;
   currency: string;
-  status: "successful" | "pending" | "failed";
+  status: "successful" | "pending" | "failed" | "payout";
   date: string;
   description?: string;
 };
@@ -42,6 +42,11 @@ export default function MerchantDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [payouts, setPayouts] = useState<{ amount: number }[]>([]);
+  const [balance, setBalance] = useState<{ available: number; pending: number; total: number }>({
+    available: 0,
+    pending: 0,
+    total: 0,
+  });
   const location = useLocation();
 
   useEffect(() => {
@@ -67,14 +72,17 @@ export default function MerchantDashboard() {
           : data.transactions || data.Transactions || data.data || [];
         const list: Transaction[] = listSource.map((tx: any) => {
           const rawAmount = tx.amount || 0;
+          const status = (tx.status || "").toLowerCase();
+          const normalizedStatus =
+            status === "success" ? "successful" : status === "payout" ? "payout" : status || "pending";
           return {
             id: tx.id,
             reference: tx.reference || tx.id,
             customer: tx.customer_name || tx.customer || "Customer",
             email: tx.customer_email || "",
-            amount: rawAmount / 100,
+            amount: rawAmount,
             currency: tx.currency || "NGN",
-            status: (tx.status === "success" ? "successful" : tx.status || "pending") as Transaction["status"],
+            status: normalizedStatus as Transaction["status"],
             date: tx.created_at || new Date().toISOString(),
             description: tx.description,
           };
@@ -105,7 +113,7 @@ export default function MerchantDashboard() {
         if (!resp.ok) throw new Error("Failed to load payouts");
         const data = await resp.json();
         const list = Array.isArray(data) ? data : data.payouts || data.data || [];
-        setPayouts(list.map((p: any) => ({ amount: (p.amount || 0) / 100 })));
+        setPayouts(list.map((p: any) => ({ amount: p.amount || 0 })));
       } catch {
         setPayouts([]);
       }
@@ -113,14 +121,38 @@ export default function MerchantDashboard() {
     fetchPayouts();
   }, [profile?.id, profile?.merchant_id]);
 
-  const revenue = useMemo(() => {
-    const total = transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
-    return total;
+  const revenueKobo = useMemo(() => {
+    return transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
   }, [transactions]);
 
-  const totalPayouts = useMemo(() => payouts.reduce((sum, p) => sum + (p.amount || 0), 0), [payouts]);
-  const availableBalance = Math.max(revenue - totalPayouts, 0);
-  const pendingSettlement = Math.max(revenue - totalPayouts, 0);
+  const revenue = revenueKobo;
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      const merchantId = profile?.id || profile?.merchant_id;
+      if (!merchantId) {
+        setBalance({ available: 0, pending: 0, total: 0 });
+        return;
+      }
+      try {
+        const resp = await fetch(`${API_BASE_URL}/merchants/${merchantId}/balance?currency=NGN`);
+        if (!resp.ok) throw new Error("Failed to load balance");
+        const data = await resp.json();
+        setBalance({
+          available: data.available_balance || 0,
+          pending: data.pending_balance || 0,
+          total: (data.total_volume ?? revenueKobo) as number,
+        });
+      } catch (error) {
+        console.error("Failed to fetch balance:", error);
+        setBalance({ available: 0, pending: 0, total: 0 });
+      }
+    };
+    fetchBalance();
+  }, [profile?.id, profile?.merchant_id, revenue]);
+
+  const availableBalance = balance.available;
+  const pendingSettlement = balance.pending;
 
   const successRate = useMemo(() => {
     if (!transactions.length) return null;
@@ -145,6 +177,8 @@ export default function MerchantDashboard() {
     }));
   }, [transactions]);
 
+  const totalRevenueValue = balance.total > 0 ? balance.total : revenue;
+
   return (
     <DashboardLayout type="merchant" title="Dashboard">
       <KYCAlert status={kycStatus} className="mb-6" />
@@ -168,17 +202,18 @@ export default function MerchantDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
               title="Total Revenue"
-              value={formatCurrency(revenue, "NGN")}
+              value={formatCurrency(totalRevenueValue, "NGN")}
               change={transactions.length ? `${transactions.length} transactions` : "No volume yet"}
               changeType={transactions.length ? "positive" : "neutral"}
               icon={DollarSign}
               iconColor="bg-success/10 text-success"
               delay={0}
+              className="lg:col-span-2"
             />
             <StatsCard
               title="Available Balance"
               value={formatCurrency(availableBalance, "NGN")}
-              change={hasDemoData ? "No payouts yet" : "After payouts"}
+              change="After settlement"
               changeType="neutral"
               icon={Wallet}
               iconColor="bg-primary/10 text-primary"
@@ -187,8 +222,14 @@ export default function MerchantDashboard() {
             <StatsCard
               title="Pending Settlement"
               value={formatCurrency(pendingSettlement, "NGN")}
-              change={transactions.length ? "Awaiting settlement run" : "No volume yet"}
-              changeType={transactions.length ? "neutral" : "neutral"}
+              change={
+                pendingSettlement > 0
+                  ? "Awaiting settlement run"
+                  : transactions.length
+                    ? "All settled"
+                    : "No volume yet"
+              }
+              changeType="neutral"
               icon={DollarSign}
               iconColor="bg-warning/10 text-warning"
               delay={150}
@@ -202,15 +243,15 @@ export default function MerchantDashboard() {
               iconColor="bg-warning/10 text-warning"
               delay={200}
             />
-        <StatsCard
-          title="Success Rate"
-          value={successRate !== null ? `${successRate.toFixed(1)}%` : "N/A"}
-          change={transactions.length ? "Based on live data" : "Awaiting transactions"}
-          changeType={transactions.length ? "neutral" : "neutral"}
-          icon={TrendingUp}
-          iconColor="bg-accent text-accent-foreground"
-          delay={300}
-        />
+            <StatsCard
+              title="Success Rate"
+              value={successRate !== null ? `${successRate.toFixed(1)}%` : "N/A"}
+              change={transactions.length ? "Based on live data" : "Awaiting transactions"}
+              changeType="neutral"
+              icon={TrendingUp}
+              iconColor="bg-accent text-accent-foreground"
+              delay={300}
+            />
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">

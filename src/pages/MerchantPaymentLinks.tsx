@@ -60,10 +60,11 @@ export default function MerchantPaymentLinks() {
         setLinks(
           data.map((link) => ({
             id: link.id,
-            amount: link.amount ? Number(link.amount) : undefined,
+            // API returns amount in kobo; convert to naira for display/links
+            amount: link.amount ? Number(link.amount) / 100 : undefined,
             currency: link.currency || "NGN",
             description: link.description || "",
-            url: `${baseCheckoutUrl}?ref=${link.reference || link.id}&merchant_id=${link.merchant_id}&mode=${link.mode}${link.amount ? `&amount=${link.amount}` : ""}&currency=${link.currency || "NGN"}&description=${encodeURIComponent(link.description || "")}`,
+            url: `${baseCheckoutUrl}?ref=${link.reference || link.id}&merchant_id=${link.merchant_id}&mode=${link.mode}${link.amount ? `&amount=${Number(link.amount) / 100}` : ""}&currency=${link.currency || "NGN"}&description=${encodeURIComponent(link.description || "")}`,
             createdAt: link.created_at || "",
             type: (link.mode || "fixed") as "fixed" | "open",
           })),
@@ -108,7 +109,8 @@ export default function MerchantPaymentLinks() {
         body: JSON.stringify({
           merchant_id: user.merchantId,
           mode: linkType,
-          amount: safeAmount,
+          // store amounts in kobo
+          amount: safeAmount ? Math.round(safeAmount * 100) : undefined,
           currency: safeCurrency,
           description: trimmedDescription,
           reference: `pl_${Date.now()}`,
@@ -117,10 +119,10 @@ export default function MerchantPaymentLinks() {
 
       const newLink: PaymentLink = {
         id: response.id || response.reference,
-        amount: response.amount,
+        amount: response.amount ? Number(response.amount) / 100 : undefined,
         currency: response.currency,
         description: response.description,
-        url: `${baseCheckoutUrl}?ref=${response.reference || response.id}&merchant_id=${user.merchantId}&mode=${response.mode}${response.amount ? `&amount=${response.amount}` : ""}&currency=${response.currency || "NGN"}&description=${encodeURIComponent(response.description || "")}`,
+        url: `${baseCheckoutUrl}?ref=${response.reference || response.id}&merchant_id=${user.merchantId}&mode=${response.mode}${response.amount ? `&amount=${Number(response.amount) / 100}` : ""}&currency=${response.currency || "NGN"}&description=${encodeURIComponent(response.description || "")}`,
         createdAt: response.created_at,
         type: response.mode,
       };

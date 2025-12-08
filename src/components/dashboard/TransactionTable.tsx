@@ -16,7 +16,7 @@ interface Transaction {
   email: string;
   amount: number;
   currency: string;
-  status: "successful" | "pending" | "failed";
+  status: "successful" | "pending" | "failed" | "payout";
   date: string;
   merchant?: string;
   description?: string;
@@ -33,6 +33,7 @@ const statusStyles = {
   successful: "bg-success/10 text-success border-success/20",
   pending: "bg-warning/10 text-warning border-warning/20",
   failed: "bg-destructive/10 text-destructive border-destructive/20",
+  payout: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800",
 };
 
 export function TransactionTable({ transactions, showMerchant = false, onSelect, isLoading = false }: TransactionTableProps) {
@@ -74,8 +75,7 @@ export function TransactionTable({ transactions, showMerchant = false, onSelect,
           {transactions.map((transaction, index) => (
             <TableRow
               key={transaction.id}
-              className="animate-fade-in cursor-pointer hover:bg-muted/30"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="cursor-pointer hover:bg-muted/30"
               onClick={() => onSelect?.(transaction)}
             >
               <TableCell className="font-mono text-sm">{transaction.reference}</TableCell>

@@ -13,8 +13,8 @@ interface CheckoutFormProps {
   merchantName: string;
   description?: string;
   allowCustomAmount?: boolean;
-  reference?: string | null;
-  merchantId?: string | null;
+  reference?: number | null; // Changed to number
+  merchantId?: number | null; // Changed to number
 }
 
 export function CheckoutForm({
@@ -63,7 +63,7 @@ export function CheckoutForm({
   };
 
   const handlePayment = async () => {
-    if (!merchantId) {
+    if (merchantId === undefined || merchantId === null) { // Check for undefined or null, as 0 is a valid ID
       toast({
         title: "Missing merchant",
         description: "This payment link is incomplete. Please reload the link or contact the merchant.",
@@ -86,12 +86,12 @@ export function CheckoutForm({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          payment_link_id: reference, // Use payment link ID if present
+          payment_link_id: reference, // number | null
           amount: Math.round(amount * 100),
           currency,
           customer_email: email,
-          customer_id: email,
-          merchant_id: merchantId,
+          // customer_id: email, // Removed, as backend expects int
+          merchant_id: merchantId, // number | null
           description: description || "Checkout payment",
           payment_method: "card",
         }),
@@ -280,7 +280,7 @@ export function CheckoutForm({
             variant="hero"
             size="lg"
             onClick={handlePayment}
-            disabled={!cardNumber || !expiry || !cvv || isProcessing || !amountValid || !merchantId}
+            disabled={!cardNumber || !expiry || !cvv || isProcessing || !amountValid || (merchantId === undefined || merchantId === null)} // Updated condition here
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">

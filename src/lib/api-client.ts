@@ -15,54 +15,54 @@ export const apiClient = {
   // Merchant Service (Port 7002)
   merchants: {
     list: `${API_BASE_URL}/merchants`,
-    get: (id: string) => `${API_BASE_URL}/merchants/${id}`,
+    get: (id: number) => `${API_BASE_URL}/merchants/${id}`,
     profile: `${API_BASE_URL}/merchants/profile`,
     settings: `${API_BASE_URL}/merchants/settings`,
-    apiKeys: (id: string) => `${API_BASE_URL}/merchants/${id}/api-keys`,
-    rotateApiKey: (id: string) => `${API_BASE_URL}/merchants/${id}/api-keys/rotate`,
+    apiKeys: (id: number) => `${API_BASE_URL}/merchants/${id}/api-keys`,
+    rotateApiKey: (id: number) => `${API_BASE_URL}/merchants/${id}/api-keys/rotate`,
   },
 
   // Payment Links (via Merchant Service)
   paymentLinks: {
     create: `${API_BASE_URL}/payment-links`,
-    list: (merchantId: string) => `${API_BASE_URL}/merchants/${merchantId}/payment-links`,
-    get: (id: string) => `${API_BASE_URL}/payment-links/${id}`,
-    delete: (id: string, merchantId?: string) =>
+    list: (merchantId: number) => `${API_BASE_URL}/merchants/${merchantId}/payment-links`,
+    get: (id: number) => `${API_BASE_URL}/payment-links/${id}`,
+    delete: (id: number, merchantId?: number) =>
       `${API_BASE_URL}/payment-links/${id}${merchantId ? `?merchant_id=${merchantId}` : ""}`,
   },
 
   // Transaction Service (Port 7004)
   transactions: {
     list: `${API_BASE_URL}/transactions`,
-    get: (id: string) => `${API_BASE_URL}/transactions/${id}`,
+    get: (id: number) => `${API_BASE_URL}/transactions/${id}`,
     search: `${API_BASE_URL}/transactions/search`,
   },
 
   // Checkout Service (Port 7005)
   checkout: {
     create: `${API_BASE_URL}/checkout`,
-    get: (id: string) => `${API_BASE_URL}/checkout/${id}`,
+    get: (id: number) => `${API_BASE_URL}/checkout/${id}`,
     process: `${API_BASE_URL}/checkout/process`,
   },
 
   // Wallet Ledger Service (Port 7007)
   wallets: {
     list: `${API_BASE_URL}/wallets`,
-    get: (id: string) => `${API_BASE_URL}/wallets/${id}`,
+    get: (id: number) => `${API_BASE_URL}/wallets/${id}`,
     ledger: `${API_BASE_URL}/wallets/ledger`,
   },
 
   // Payout Service (Port 7009)
   payouts: {
     list: `${API_BASE_URL}/payouts`,
-    get: (id: string) => `${API_BASE_URL}/payouts/${id}`,
+    get: (id: number) => `${API_BASE_URL}/payouts/${id}`,
     schedule: `${API_BASE_URL}/payouts/schedule`,
   },
 
   // Settlement Service (Port 7008)
   settlement: {
     list: `${API_BASE_URL}/settlements`,
-    get: (id: string) => `${API_BASE_URL}/settlements/${id}`,
+    get: (id: number) => `${API_BASE_URL}/settlements/${id}`,
     reconcile: `${API_BASE_URL}/settlements/reconcile`,
   },
 
@@ -83,7 +83,7 @@ export const apiClient = {
   // Webhook Service (Port 7006)
   webhooks: {
     list: `${API_BASE_URL}/webhooks`,
-    get: (id: string) => `${API_BASE_URL}/webhooks/${id}`,
+    get: (id: number) => `${API_BASE_URL}/webhooks/${id}`,
     logs: `${API_BASE_URL}/webhooks/logs`,
   },
 
@@ -91,8 +91,8 @@ export const apiClient = {
   disputes: {
     list: `${API_BASE_URL}/disputes`,
     create: `${API_BASE_URL}/disputes`,
-    get: (id: string) => `${API_BASE_URL}/disputes/${id}`,
-    evidence: (id: string) => `${API_BASE_URL}/disputes/${id}/evidence`,
+    get: (id: number) => `${API_BASE_URL}/disputes/${id}`,
+    evidence: (id: number) => `${API_BASE_URL}/disputes/${id}/evidence`,
   },
 };
 

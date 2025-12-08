@@ -1,7 +1,7 @@
 export type MerchantUser = {
   email: string;
   businessName: string;
-  merchantId?: string;
+  merchantId?: number;
   kycStatus: "not_started" | "pending" | "approved" | "rejected" | "completed";
   hasDemoData?: boolean;
   createdAt?: string;

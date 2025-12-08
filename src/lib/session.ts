@@ -4,10 +4,10 @@ const SESSION_COOKIE_NAME = "kodrapay_session";
 
 export interface SessionData {
   sessionId: string;
-  userId: string;
+  userId: number;
   email: string;
   role: string;
-  merchantId?: string;
+  merchantId?: number;
 }
 
 // Cookie helpers
@@ -60,6 +60,10 @@ export async function validateSession(): Promise<SessionData | null> {
 
     const data = await response.json();
 
+    const merchantIdRaw = data.merchant_id ?? data.merchantId;
+    const merchantIdNum =
+      typeof merchantIdRaw === "string" ? parseInt(merchantIdRaw, 10) : merchantIdRaw;
+
     if (!data.valid) {
       clearSessionCookie();
       return null;
@@ -70,7 +74,10 @@ export async function validateSession(): Promise<SessionData | null> {
       userId: data.user_id,
       email: data.email,
       role: data.role,
-      merchantId: data.merchant_id,
+      merchantId:
+        typeof merchantIdNum === "number" && !Number.isNaN(merchantIdNum) && merchantIdNum > 0
+          ? merchantIdNum
+          : undefined,
     };
   } catch (error) {
     console.error("Session validation error:", error);
@@ -101,7 +108,6 @@ export async function logout(): Promise<void> {
   // Also clear any localStorage tokens for backward compatibility
   localStorage.removeItem("authToken");
 }
-
 // Check if user is authenticated
 export async function isAuthenticated(): Promise<boolean> {
   const session = await validateSession();
