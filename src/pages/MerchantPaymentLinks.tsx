@@ -31,9 +31,9 @@ const formatAmount = (amount: number, currency: string) => {
       currency: currency || "NGN",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(amount / 100);
   } catch {
-    return `${currency} ${amount}`;
+    return `${currency} ${amount / 100}`;
   }
 };
 
@@ -108,8 +108,8 @@ export default function MerchantPaymentLinks() {
         body: JSON.stringify({
           merchant_id: user.merchantId,
           mode: linkType,
-          // store amounts in currency units
-          amount: safeAmount || undefined,
+          // store amounts in kobo (multiply by 100)
+          amount: safeAmount ? Math.round(safeAmount * 100) : undefined,
           currency: safeCurrency,
           description: trimmedDescription,
           reference: `pl_${Date.now()}`,
@@ -287,16 +287,16 @@ export default function MerchantPaymentLinks() {
                 className="rounded-lg border border-border p-4 space-y-3 bg-card/60"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Link ID • {link.id}</p>
-                    <p className="text-base font-semibold text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground truncate" title={link.id}>Link ID • {link.id}</p>
+                    <p className="text-base font-semibold text-foreground truncate">
                       {link.type === "fixed"
                         ? formatAmount(link.amount ?? 0, link.currency)
                         : "Customer enters amount"}
                     </p>
-                    <p className="text-sm text-muted-foreground">{link.description}</p>
+                    <p className="text-sm text-muted-foreground truncate" title={link.description}>{link.description}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <Badge variant="secondary" className="capitalize">
                       {link.type === "fixed" ? "Fixed" : "Open"}
                     </Badge>
@@ -306,7 +306,7 @@ export default function MerchantPaymentLinks() {
                   </div>
                 </div>
 
-                <div className="rounded-md bg-secondary px-3 py-2 text-xs font-mono break-all">
+                <div className="rounded-md bg-secondary px-3 py-2 text-xs font-mono break-words overflow-hidden" title={link.url}>
                   {link.url}
                 </div>
 

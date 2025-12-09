@@ -34,7 +34,7 @@ export default function Checkout() {
   const hasValidAmount = Number.isFinite(amountParam) && amountParam > 0;
   const allowCustomAmount = mode === "open" || !hasValidAmount;
   const initialAmount =
-    hasValidAmount ? amountParam : resolvedAmount !== undefined ? resolvedAmount : allowCustomAmount ? undefined : 25000;
+    hasValidAmount ? amountParam / 100 : resolvedAmount !== undefined ? resolvedAmount : allowCustomAmount ? undefined : 25000;
 
   useEffect(() => {
     const stored = localStorage.getItem("paymentOptions");

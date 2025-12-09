@@ -161,7 +161,7 @@ export default function MerchantDashboard() {
   }, [transactions]);
 
   const formatCurrency = (amount: number, currency: string) =>
-    new Intl.NumberFormat("en-NG", { style: "currency", currency }).format(amount || 0);
+    new Intl.NumberFormat("en-NG", { style: "currency", currency }).format((amount || 0) / 100);
 
   const monthlyRevenueData = useMemo(() => {
     const revenueByMonth: { [key: string]: number } = {};

@@ -49,7 +49,7 @@ export default function MerchantCheckout() {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: curr || "NGN",
-    }).format(num);
+    }).format(num / 100);
   };
 
   const handleSubmit = async (event: FormEvent) => {

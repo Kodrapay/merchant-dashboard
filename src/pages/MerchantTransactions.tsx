@@ -91,24 +91,29 @@ export default function MerchantTransactions() {
   return (
     <DashboardLayout type="merchant" title="Transactions">
       <div className="grid md:grid-cols-3 gap-4 mb-6">
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Processed</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">
+        <Card className="p-5">
+          <p className="text-sm text-muted-foreground mb-2">Processed</p>
+          <p className="text-xl md:text-2xl font-semibold text-foreground break-words leading-tight" title={new Intl.NumberFormat("en-NG", {
+              style: "currency",
+              currency: "NGN",
+            }).format(transactions.reduce((s, t) => s + (t.amount || 0), 0) / 100)}>
             {new Intl.NumberFormat("en-NG", {
               style: "currency",
               currency: "NGN",
-            }).format(transactions.reduce((s, t) => s + (t.amount || 0), 0))}
+            }).format(transactions.reduce((s, t) => s + (t.amount || 0), 0) / 100)}
           </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Success rate</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">
-            {transactions.length ? "—" : "N/A"}
+        <Card className="p-5">
+          <p className="text-sm text-muted-foreground mb-2">Success rate</p>
+          <p className="text-xl md:text-2xl font-semibold text-foreground">
+            {transactions.length > 0
+              ? `${((transactions.filter(t => t.status === "successful").length / transactions.length) * 100).toFixed(1)}%`
+              : "N/A"}
           </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Refunds pending</p>
-          <p className="text-2xl font-semibold text-warning mt-1">
+        <Card className="p-5">
+          <p className="text-sm text-muted-foreground mb-2">Refunds pending</p>
+          <p className="text-xl md:text-2xl font-semibold text-warning">
             0
           </p>
         </Card>
@@ -187,7 +192,7 @@ export default function MerchantTransactions() {
                   {new Intl.NumberFormat("en-NG", {
                     style: "currency",
                     currency: "NGN",
-                  }).format(selectedTx.amount)}
+                  }).format(selectedTx.amount / 100)}
                 </span>
               </div>
               <div className="flex items-center justify-between">

@@ -243,23 +243,27 @@ export default function MerchantPayouts() {
   return (
     <DashboardLayout type="merchant" title="Payouts">
       <div className="grid md:grid-cols-3 gap-4 mb-6">
-        <Card className="p-4">
-          <p className="text-xl font-semibold text-foreground mt-1">
+        <Card className="p-5">
+          <p className="text-sm text-muted-foreground mb-2">Available Balance</p>
+          <p className="text-xl md:text-2xl font-semibold text-foreground break-words leading-tight" title={new Intl.NumberFormat("en-NG", {
+              style: "currency",
+              currency: "NGN",
+            }).format(availableBalance / 100)}>
             {new Intl.NumberFormat("en-NG", {
               style: "currency",
               currency: "NGN",
-            }).format(availableBalance)}
+            }).format(availableBalance / 100)}
           </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Next payout</p>
-          <p className="text-2xl font-semibold text-foreground mt-1">₦0</p>
-          <p className="text-xs text-muted-foreground mt-1">Arriving soon</p>
+        <Card className="p-5">
+          <p className="text-sm text-muted-foreground mb-2">Next payout</p>
+          <p className="text-xl md:text-2xl font-semibold text-foreground">₦0</p>
+          <p className="text-xs text-muted-foreground mt-2">Arriving soon</p>
         </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Pending review</p>
-          <p className="text-2xl font-semibold text-warning mt-1">0</p>
-          <p className="text-xs text-muted-foreground mt-1">No pending reviews</p>
+        <Card className="p-5">
+          <p className="text-sm text-muted-foreground mb-2">Pending review</p>
+          <p className="text-xl md:text-2xl font-semibold text-warning">0</p>
+          <p className="text-xs text-muted-foreground mt-2">No pending reviews</p>
         </Card>
       </div>
 
@@ -299,22 +303,25 @@ export default function MerchantPayouts() {
             <div className="py-4 text-sm text-muted-foreground text-center">No payouts yet.</div>
           )}
           {payouts.map((payout) => (
-            <div key={payout.id} className="flex items-center justify-between py-4">
-              <div>
-                <p className="text-sm text-muted-foreground">{payout.id}</p>
-                <p className="font-semibold text-sm text-foreground">
+            <div key={payout.id} className="flex items-center justify-between py-4 gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground mb-1" title={payout.id}>{payout.id}</p>
+                <p className="font-semibold text-base text-foreground break-words leading-tight mb-1" title={new Intl.NumberFormat("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                  }).format(payout.amount / 100)}>
                   {new Intl.NumberFormat("en-NG", {
                     style: "currency",
                     currency: "NGN",
-                  }).format(payout.amount)}
+                  }).format(payout.amount / 100)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{payout.bank}</p>
+                <p className="text-xs text-muted-foreground" title={payout.bank}>{payout.bank}</p>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-shrink-0">
                 <Badge className={statusTone[payout.status as keyof typeof statusTone]}>
                   {payout.status}
                 </Badge>
-                <p className="text-sm text-muted-foreground mt-1">{payout.date}</p>
+                <p className="text-sm text-muted-foreground mt-1 whitespace-nowrap">{payout.date}</p>
               </div>
             </div>
           ))}

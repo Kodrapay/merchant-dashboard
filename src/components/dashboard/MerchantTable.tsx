@@ -37,7 +37,7 @@ export function MerchantTable({ merchants }: MerchantTableProps) {
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: currency,
-    }).format(amount);
+    }).format(amount / 100);
   };
 
   return (
