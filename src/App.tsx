@@ -17,6 +17,7 @@ import MerchantPaymentLinks from "./pages/MerchantPaymentLinks";
 import MerchantKyc from "./pages/MerchantKyc";
 import MerchantDisputes from "./pages/MerchantDisputes";
 import { validateSession, getSessionCookie } from "./lib/session";
+import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
 
@@ -75,83 +76,85 @@ const RequireMerchantAuth = ({
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/merchant/checkout" element={<Checkout />} />
-          <Route path="/merchant/login" element={<MerchantLogin />} />
-          <Route path="/merchant/signup" element={<MerchantSignup />} />
-          <Route
-            path="/merchant"
-            element={<Navigate to="/merchant/dashboard" replace />}
-          />
-          <Route
-            path="/merchant/dashboard"
-            element={
-              <RequireMerchantAuth requireKyc>
-                <MerchantDashboard />
-              </RequireMerchantAuth>
-            }
-          />
-          <Route
-            path="/merchant/transactions"
-            element={
-              <RequireMerchantAuth requireKyc>
-                <MerchantTransactions />
-              </RequireMerchantAuth>
-            }
-          />
-          <Route
-            path="/merchant/payment-links"
-            element={
-              <RequireMerchantAuth requireKyc>
-                <MerchantPaymentLinks />
-              </RequireMerchantAuth>
-            }
-          />
-          <Route
-            path="/merchant/payouts"
-            element={
-              <RequireMerchantAuth requireKyc>
-                <MerchantPayouts />
-              </RequireMerchantAuth>
-            }
-          />
-          <Route
-            path="/merchant/disputes"
-            element={
-              <RequireMerchantAuth requireKyc>
-                <MerchantDisputes />
-              </RequireMerchantAuth>
-            }
-          />
-          <Route
-            path="/merchant/settings"
-            element={
-              <RequireMerchantAuth requireKyc>
-                <MerchantSettings />
-              </RequireMerchantAuth>
-            }
-          />
-          <Route
-            path="/merchant/kyc"
-            element={
-              <RequireMerchantAuth>
-                <MerchantKyc />
-              </RequireMerchantAuth>
-            }
-          />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/merchant/checkout" element={<Checkout />} />
+            <Route path="/merchant/login" element={<MerchantLogin />} />
+            <Route path="/merchant/signup" element={<MerchantSignup />} />
+            <Route
+              path="/merchant"
+              element={<Navigate to="/merchant/dashboard" replace />}
+            />
+            <Route
+              path="/merchant/dashboard"
+              element={
+                <RequireMerchantAuth requireKyc>
+                  <MerchantDashboard />
+                </RequireMerchantAuth>
+              }
+            />
+            <Route
+              path="/merchant/transactions"
+              element={
+                <RequireMerchantAuth requireKyc>
+                  <MerchantTransactions />
+                </RequireMerchantAuth>
+              }
+            />
+            <Route
+              path="/merchant/payment-links"
+              element={
+                <RequireMerchantAuth requireKyc>
+                  <MerchantPaymentLinks />
+                </RequireMerchantAuth>
+              }
+            />
+            <Route
+              path="/merchant/payouts"
+              element={
+                <RequireMerchantAuth requireKyc>
+                  <MerchantPayouts />
+                </RequireMerchantAuth>
+              }
+            />
+            <Route
+              path="/merchant/disputes"
+              element={
+                <RequireMerchantAuth requireKyc>
+                  <MerchantDisputes />
+                </RequireMerchantAuth>
+              }
+            />
+            <Route
+              path="/merchant/settings"
+              element={
+                <RequireMerchantAuth requireKyc>
+                  <MerchantSettings />
+                </RequireMerchantAuth>
+              }
+            />
+            <Route
+              path="/merchant/kyc"
+              element={
+                <RequireMerchantAuth>
+                  <MerchantKyc />
+                </RequireMerchantAuth>
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
