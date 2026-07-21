@@ -54,23 +54,28 @@ export function DashboardSidebar({ type, forceKycOnly }: SidebarProps) {
         : [{ href: "/merchant/kyc", icon: FileCheck, label: "Business KYC" }];
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar/95 border-r border-sidebar-border/70 shadow-[12px_0_30px_-18px_rgba(15,23,42,0.6)] backdrop-blur-xl">
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
+        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border/70 px-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl gradient-primary shadow-glow">
             <Shield className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold text-sidebar-foreground">
-            KodraPay
-          </span>
-          <span className="ml-auto rounded-md bg-sidebar-accent px-2 py-0.5 text-xs font-medium text-sidebar-primary">
+          <div>
+            <span className="text-lg font-semibold text-sidebar-foreground tracking-tight">
+              KodraPay
+            </span>
+            <p className="text-xs uppercase tracking-[0.2em] text-sidebar-foreground/70">
+              Commerce
+            </p>
+          </div>
+          <span className="ml-auto rounded-full bg-sidebar-accent px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-sidebar-primary">
             {type === "admin" ? "Admin" : "Merchant"}
           </span>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1.5 px-3 py-5">
           {links.map((link) => {
             const isActive = location.pathname.startsWith(link.href);
             return (
@@ -78,10 +83,10 @@ export function DashboardSidebar({ type, forceKycOnly }: SidebarProps) {
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    ? "bg-sidebar-accent text-sidebar-primary shadow-[0_8px_20px_-14px_rgba(24,98,80,0.65)]"
+                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 )}
               >
                 <link.icon className="h-5 w-5" />
@@ -92,14 +97,14 @@ export function DashboardSidebar({ type, forceKycOnly }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-3">
+        <div className="border-t border-sidebar-border/70 p-3">
           <button
             onClick={async () => {
               await logout();
               localStorage.removeItem("merchantUser");
               navigate("/");
             }}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
           >
             <LogOut className="h-5 w-5" />
             Exit Dashboard

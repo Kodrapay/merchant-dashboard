@@ -85,35 +85,40 @@ export function DashboardLayout({ children, type, title, forceKycOnly = false }:
     : "JD";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+      <div className="pointer-events-none absolute -top-48 right-0 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(circle,hsla(165,55%,70%,0.28),transparent_60%)] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-10 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle,hsla(28,90%,75%,0.32),transparent_60%)] blur-3xl" />
       <DashboardSidebar type={type} forceKycOnly={forceKycOnly} />
-      
+
       <div className="pl-64">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-6">
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-          
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/60 bg-card/70 backdrop-blur-xl px-6 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.3)]">
+          <div className="space-y-0.5">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Merchant Console</p>
+            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          </div>
+
           <div className="flex items-center gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search..."
-                className="w-64 pl-9 bg-secondary border-0"
+                placeholder="Search payouts, customers..."
+                className="w-64 pl-9 bg-muted/60 border border-border/60 focus-visible:ring-primary/60"
               />
             </div>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="ghost" size="icon" className="relative rounded-full border border-border/60 bg-card/60">
                   <Bell className="h-5 w-5" />
                   {notifications && notifications.length > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-glow">
                       {notifications.length}
                     </span>
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuContent align="end" className="w-80 glass-panel">
                 <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {isLoading ? (
@@ -132,12 +137,12 @@ export function DashboardLayout({ children, type, title, forceKycOnly = false }:
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Button variant="ghost" className="flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-2.5">
+                    <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center ring-1 ring-primary/30">
                       <span className="text-sm font-semibold text-primary">{initials}</span>
                     </div>
                     {type === "merchant" && (
@@ -153,7 +158,7 @@ export function DashboardLayout({ children, type, title, forceKycOnly = false }:
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="glass-panel">
                   <DropdownMenuLabel>Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {type === "merchant"
@@ -184,7 +189,7 @@ export function DashboardLayout({ children, type, title, forceKycOnly = false }:
         </header>
 
         {/* Main Content */}
-        <main className="p-6">
+        <main className="p-6 space-y-6">
           {children}
         </main>
       </div>

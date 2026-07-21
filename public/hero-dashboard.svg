@@ -1,0 +1,78 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#F8FAFC" rx="12" />
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="200" height="600" fill="#FFFFFF" />
+  <rect x="0" y="0" width="200" height="600" stroke="#E2E8F0" stroke-width="1" />
+  
+  <!-- Logo Area -->
+  <rect x="24" y="24" width="32" height="32" rx="6" fill="#0F172A" />
+  <text x="68" y="46" font-family="sans-serif" font-weight="bold" font-size="16" fill="#0F172A">KodraPay</text>
+  
+  <!-- Nav Items -->
+  <rect x="16" y="80" width="168" height="36" rx="6" fill="#F1F5F9" />
+  <rect x="32" y="91" width="14" height="14" rx="2" fill="#0F172A" />
+  <text x="58" y="103" font-family="sans-serif" font-size="14" fill="#0F172A">Dashboard</text>
+  
+  <rect x="32" y="140" width="14" height="14" rx="2" fill="#94A3B8" />
+  <text x="58" y="152" font-family="sans-serif" font-size="14" fill="#64748B">Transactions</text>
+  
+  <rect x="32" y="180" width="14" height="14" rx="2" fill="#94A3B8" />
+  <text x="58" y="192" font-family="sans-serif" font-size="14" fill="#64748B">Payouts</text>
+  
+  <rect x="32" y="220" width="14" height="14" rx="2" fill="#94A3B8" />
+  <text x="58" y="232" font-family="sans-serif" font-size="14" fill="#64748B">Customers</text>
+
+  <!-- Top Bar -->
+  <rect x="200" y="0" width="600" height="64" fill="#FFFFFF" />
+  <line x1="200" y1="64" x2="800" y2="64" stroke="#E2E8F0" />
+  <text x="232" y="40" font-family="sans-serif" font-weight="bold" font-size="18" fill="#0F172A">Overview</text>
+  
+  <!-- User Profile -->
+  <circle cx="760" cy="32" r="16" fill="#E2E8F0" />
+  
+  <!-- Stats Cards -->
+  <rect x="232" y="96" width="170" height="100" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="248" y="124" font-family="sans-serif" font-size="12" fill="#64748B">Total Revenue</text>
+  <text x="248" y="152" font-family="sans-serif" font-weight="bold" font-size="24" fill="#0F172A">₦2,450,300</text>
+  <text x="248" y="176" font-family="sans-serif" font-size="12" fill="#10B981">+12.5% from last month</text>
+
+  <rect x="418" y="96" width="170" height="100" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="434" y="124" font-family="sans-serif" font-size="12" fill="#64748B">Total Transactions</text>
+  <text x="434" y="152" font-family="sans-serif" font-weight="bold" font-size="24" fill="#0F172A">1,245</text>
+  <text x="434" y="176" font-family="sans-serif" font-size="12" fill="#10B981">+8.2% from last month</text>
+
+  <rect x="604" y="96" width="170" height="100" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="620" y="124" font-family="sans-serif" font-size="12" fill="#64748B">Active Customers</text>
+  <text x="620" y="152" font-family="sans-serif" font-weight="bold" font-size="24" fill="#0F172A">892</text>
+  <text x="620" y="176" font-family="sans-serif" font-size="12" fill="#10B981">+2.4% from last month</text>
+
+  <!-- Main Chart Area -->
+  <rect x="232" y="220" width="542" height="280" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="256" y="250" font-family="sans-serif" font-weight="600" font-size="16" fill="#0F172A">Revenue Overview</text>
+  
+  <!-- Simple Line Chart -->
+  <path d="M256 450 L750 450" stroke="#E2E8F0" stroke-width="1" />
+  <path d="M256 400 L750 400" stroke="#E2E8F0" stroke-width="1" />
+  <path d="M256 350 L750 350" stroke="#E2E8F0" stroke-width="1" />
+  <path d="M256 300 L750 300" stroke="#E2E8F0" stroke-width="1" />
+  
+  <path d="M256 420 Q 320 400, 380 350 T 500 380 T 620 280 T 750 320" fill="none" stroke="#2563EB" stroke-width="3" />
+  <path d="M256 420 Q 320 400, 380 350 T 500 380 T 620 280 T 750 320 V 450 H 256 Z" fill="url(#gradient)" opacity="0.1" />
+  
+  <defs>
+    <linearGradient id="gradient" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Recent Transactions Table Header -->
+  <rect x="232" y="520" width="542" height="40" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="256" y="545" font-family="sans-serif" font-weight="600" font-size="14" fill="#0F172A">Recent Transactions</text>
+
+  <!-- Overlay for "Preview" feel -->
+  <!-- <rect x="0" y="0" width="800" height="600" fill="url(#overlay-gradient)" opacity="0.1" pointer-events="none" /> -->
+  
+</svg>

@@ -17,6 +17,13 @@ interface CheckoutFormProps {
   merchantId?: number | null; // Changed to number
 }
 
+// Declare Cardinal on window
+declare global {
+  interface Window {
+    Cardinal: any;
+  }
+}
+
 export function CheckoutForm({
   initialAmount,
   currency,
@@ -35,6 +42,9 @@ export function CheckoutForm({
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const [resultState, setResultState] = useState<"idle" | "success" | "failure">("idle");
+  
+  // 3DS State
+  const [pendingAuthId, setPendingAuthId] = useState<string>("");
 
   const formatAmount = (amount: number, currency: string) => {
     return new Intl.NumberFormat("en-NG", {
@@ -62,11 +72,61 @@ export function CheckoutForm({
     return v;
   };
 
+  // Initialize Cardinal SDK
+  useEffect(() => {
+    if (window.Cardinal) {
+      window.Cardinal.configure({
+        logging: {
+            level: 'on'
+        }
+      });
+      
+      window.Cardinal.on("payments.setupComplete", function(data: any) {
+        console.log("Cardinal setup complete", data);
+      });
+
+      window.Cardinal.on("payments.validated", function(data: any, jwt: string) {
+        console.log("Cardinal validation result", data);
+        handle3DSResult(data);
+      });
+    }
+  }, [pendingAuthId]); // Re-bind if auth ID changes? Actually no need, but access to pendingAuthId inside callback might need ref or simple state
+
+  // Handle callback from Cardinal
+  const handle3DSResult = async (data: any) => {
+    // ActionCode: SUCCESS, NOACTION, FAILURE, ERROR
+    if (data.ActionCode === "SUCCESS" || data.ActionCode === "NOACTION") {
+      // Proceed to complete payment
+      if (pendingAuthId) {
+        const paRes = data?.Payment?.ExtendedData?.PARes || data?.Payment?.ExtendedData?.pares || "";
+        await submitPayment(pendingAuthId, paRes);
+      } else {
+        // Fallback if state usage in callback is tricky (use reference from flow)
+        console.error("Missing pendingAuthId in callback");
+        setResultState("failure");
+        setStep("success");
+      }
+    } else {
+       setIsProcessing(false);
+       setResultState("failure");
+       setStep("success");
+       toast({
+         title: "Authentication Failed",
+         description: data.ErrorDescription || "Your bank declined the authentication.",
+         variant: "destructive",
+       });
+    }
+  };
+
   const handlePayment = async () => {
-    if (merchantId === undefined || merchantId === null) { // Check for undefined or null, as 0 is a valid ID
+    await submitPayment();
+  };
+
+  const submitPayment = async (authenticationId?: string, paRes?: string) => {
+    if (merchantId === undefined || merchantId === null) {
       toast({
         title: "Missing merchant",
-        description: "This payment link is incomplete. Please reload the link or contact the merchant.",
+        description: "This payment link is incomplete.",
         variant: "destructive",
       });
       setResultState("failure");
@@ -75,45 +135,92 @@ export function CheckoutForm({
     }
 
     setIsProcessing(true);
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    // Parse expiry
+    const [expMonth, expYear] = expiry.split("/");
+    const fullExpYear = expYear ? "20" + expYear : "";
 
     let transactionSucceeded = true;
     try {
+      const payload: any = {
+        payment_link_id: reference,
+        amount: Number(amount.toFixed(2)),
+        currency,
+        customer_email: email,
+        merchant_id: merchantId,
+        description: description || "Checkout payment",
+        payment_method: "card",
+        // Card data (only if not authenticating existing one)
+        card_number: cardNumber.replace(/\s+/g, ""),
+        expiry_month: expMonth,
+        expiry_year: fullExpYear,
+        cvv: cvv,
+      };
+
+      if (authenticationId) {
+        payload.authentication_id = authenticationId;
+        if (paRes) {
+          payload.pares = paRes;
+        }
+      }
+
       const response = await fetch(`${API_BASE_URL}/checkout/pay`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          payment_link_id: reference, // number | null
-          amount: Math.round(amount * 100),
-          currency,
-          customer_email: email,
-          // customer_id: email, // Removed, as backend expects int
-          merchant_id: merchantId, // number | null
-          description: description || "Checkout payment",
-          payment_method: "card",
-        }),
+        body: JSON.stringify(payload),
       });
+      
+      const data = await response.json();
 
       if (!response.ok) {
         transactionSucceeded = false;
+        // Check for specific error messages or failures
+        toast({
+            title: "Payment Failed",
+            description: data.details || data.error || "Transaction could not be processed.",
+            variant: "destructive"
+        });
       } else {
-        const data = await response.json();
-        transactionSucceeded = data?.status === "paid" || response.ok;
+        // Check for 3DS requirement
+        if (data.status === "pending_authentication") {
+            setPendingAuthId(data.authentication_id);
+            
+            // Trigger Cardinal Challenge
+            if (window.Cardinal) {
+                window.Cardinal.continue('cca', {
+                    "AcsUrl": data.challenge_url,
+                    "Payload": data.pareq
+                }, {
+                    "OrderDetails": {
+                        "TransactionId": data.authentication_id
+                    }
+                });
+                return; // Stop here, wait for callback
+            } else {
+                console.error("Cardinal SDK not loaded");
+                transactionSucceeded = false;
+            }
+        } else {
+            // Success or plain failure
+            transactionSucceeded = data.status === "paid" || data.status === "successful";
+        }
       }
-    } catch {
+    } catch (e) {
+      console.error(e);
       transactionSucceeded = false;
     }
 
-    setIsProcessing(false);
     if (transactionSucceeded) {
-      setResultState("success");
-      setStep("success");
-    } else {
-      setResultState("failure");
-      setStep("success"); // Use success step to show failure message
+        setIsProcessing(false);
+        setResultState("success");
+        setStep("success");
+    } else if (!pendingAuthId) {
+        // Only show failure if we didn't just start 3DS
+        setIsProcessing(false);
+        setResultState("failure");
+        setStep("success");
     }
   };
 

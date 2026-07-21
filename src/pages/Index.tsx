@@ -186,7 +186,7 @@ const Index = () => {
             {/* Placeholder for Hero Image/Illustration */}
             <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden shadow-xl border border-gray-200 animate-in">
               <img
-                src="/placeholder.svg" // Replace with a relevant image path
+                src="/hero-dashboard.svg"
                 alt="KodraPay merchant dashboard preview"
                 className="w-full h-full object-cover"
               />
